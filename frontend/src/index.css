@@ -1,0 +1,103 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: linear-gradient(180deg, #0a0a0a 0%, #1a1a1a 100%);
+  color: #ffffff;
+  min-height: 100vh;
+  font-size: 14px; /* Daha küçük default font */
+}
+
+/* Küçük başlıklar */
+h1 { font-size: 2rem; font-weight: 700; }
+h2 { font-size: 1.5rem; font-weight: 600; }
+h3 { font-size: 1.25rem; font-weight: 600; }
+h4 { font-size: 1.1rem; font-weight: 500; }
+h5 { font-size: 1rem; font-weight: 500; }
+h6 { font-size: 0.9rem; font-weight: 500; }
+
+/* Kompakt butonlar */
+button {
+  font-size: 0.875rem;
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+}
+
+/* Kompakt inputlar */
+input, textarea, select {
+  font-size: 0.875rem;
+  padding: 0.5rem 0.75rem;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* Scrollbar Styling - Four.meme Style */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #F0B90B, #F8D33A);
+  border-radius: 10px;
+  border: 2px solid rgba(26, 26, 26, 0.5);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #F8D33A, #F0B90B);
+}
+
+/* Selection */
+::selection {
+  background: rgba(240, 185, 11, 0.3);
+  color: #F0B90B;
+}
+
+::-moz-selection {
+  background: rgba(240, 185, 11, 0.3);
+  color: #F0B90B;
+}
+
+/* Global Link Styling */
+a {
+  color: #F0B90B;
+  transition: all 0.2s ease;
+}
+
+a:hover {
+  color: #F8D33A;
+}
+
+/* Button Reset */
+button {
+  font-family: 'Inter', sans-serif;
+}
+
+/* Input Reset */
+input, textarea, select {
+  font-family: 'Inter', sans-serif;
+}
+
+/* Global Animations */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

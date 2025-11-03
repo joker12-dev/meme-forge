@@ -1,0 +1,165 @@
+/* MyTokens Page Styles */
+
+.my-tokens-container {
+  min-height: 80vh;
+  padding: 2.5rem 1rem;
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Mobile responsive table */
+.my-tokens-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 12px;
+  -webkit-overflow-scrolling: touch;
+  margin-top: 1rem;
+}
+
+.my-tokens-table {
+  width: 100%;
+  background: #232323;
+  color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.my-tokens-table thead {
+  background: #181818;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.my-tokens-table th {
+  padding: 1rem;
+  font-weight: 600;
+  color: #ffd700;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 2px solid #333;
+}
+
+.my-tokens-table th:first-child {
+  border-top-left-radius: 12px;
+}
+
+.my-tokens-table th:last-child {
+  border-top-right-radius: 12px;
+}
+
+.my-tokens-table tbody tr {
+  border-bottom: 1px solid #333;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.25s, color 0.25s;
+}
+
+.my-tokens-table tbody tr:hover {
+  background: linear-gradient(90deg, #232323 60%, rgba(255, 215, 0, 0.1) 100%);
+  color: #ffd700;
+}
+
+.my-tokens-table td {
+  padding: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.my-tokens-table td:first-child {
+  text-align: center;
+}
+
+/* Mobile: Stack table vertically */
+@media (max-width: 768px) {
+  .my-tokens-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .my-tokens-table {
+    min-width: 600px;
+    font-size: 0.9rem;
+  }
+
+  .my-tokens-table th,
+  .my-tokens-table td {
+    padding: 0.6rem;
+    font-size: 0.85rem;
+  }
+
+  .my-tokens-table th {
+    white-space: nowrap;
+  }
+
+  /* Address column - truncate more aggressively */
+  .my-tokens-table td[data-column="address"] {
+    max-width: 120px;
+    font-family: monospace;
+    font-size: 0.75rem;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+  .my-tokens-container {
+    padding: 1.5rem 0.5rem;
+  }
+
+  .my-tokens-table {
+    min-width: 500px;
+  }
+
+  .my-tokens-table th,
+  .my-tokens-table td {
+    padding: 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  /* Hide some columns on very small screens */
+  .my-tokens-table th:nth-child(5),
+  .my-tokens-table td:nth-child(5),
+  .my-tokens-table th:nth-child(6),
+  .my-tokens-table td:nth-child(6),
+  .my-tokens-table th:nth-child(7),
+  .my-tokens-table td:nth-child(7) {
+    display: none;
+  }
+}
+
+/* Scrollbar styling */
+.my-tokens-table-wrapper::-webkit-scrollbar {
+  height: 6px;
+}
+
+.my-tokens-table-wrapper::-webkit-scrollbar-track {
+  background: #1a1a1a;
+  border-radius: 3px;
+}
+
+.my-tokens-table-wrapper::-webkit-scrollbar-thumb {
+  background: #ffd700;
+  border-radius: 3px;
+}
+
+.my-tokens-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #fff700;
+}
+
+/* Touch-friendly adjustments */
+@media (hover: none) and (pointer: coarse) {
+  .my-tokens-table tbody tr {
+    transition: background 0.1s;
+  }
+
+  .my-tokens-table th,
+  .my-tokens-table td {
+    padding: 0.75rem;
+  }
+}

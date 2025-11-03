@@ -1,0 +1,150 @@
+/* Toast Notifications */
+.toast-container {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 10001;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 400px;
+  pointer-events: none; /* Container tıklamaları engellemez */
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #1a1d29 0%, #252834 100%);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+              0 0 0 1px rgba(255, 255, 255, 0.1);
+  color: #fff;
+  min-width: 320px;
+  animation: slideInRight 0.3s ease, fadeIn 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  pointer-events: auto; /* Sadece toast kendisi tıklanabilir */
+}
+
+.toast::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: currentColor;
+}
+
+.toast-success {
+  color: #4CAF50;
+}
+
+.toast-success::before {
+  background: linear-gradient(180deg, #4CAF50 0%, #45a049 100%);
+}
+
+.toast-error {
+  color: #f44336;
+}
+
+.toast-error::before {
+  background: linear-gradient(180deg, #f44336 0%, #da190b 100%);
+}
+
+.toast-warning {
+  color: #ff9800;
+}
+
+.toast-warning::before {
+  background: linear-gradient(180deg, #ff9800 0%, #fb8c00 100%);
+}
+
+.toast-info {
+  color: #2196F3;
+}
+
+.toast-info::before {
+  background: linear-gradient(180deg, #2196F3 0%, #1976D2 100%);
+}
+
+.toast-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.toast-message {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 500;
+  color: #e8e8e8;
+  line-height: 1.5;
+}
+
+.toast-close {
+  background: rgba(255, 255, 255, 0.05);
+  border: none;
+  border-radius: 6px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.toast-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .toast-container {
+    top: 16px;
+    right: 16px;
+    left: 16px;
+    max-width: none;
+  }
+
+  .toast {
+    min-width: auto;
+    width: 100%;
+  }
+}

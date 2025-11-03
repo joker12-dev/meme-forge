@@ -1,0 +1,355 @@
+/* FollowList Styles */
+
+.follow-list-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+  padding: 30px 20px;
+}
+
+.follow-list-header {
+  max-width: 1200px;
+  margin: 0 auto 40px;
+  text-align: center;
+  padding-bottom: 30px;
+  border-bottom: 2px solid #333;
+}
+
+.follow-list-header h1 {
+  font-size: 32px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #ffd700, #ffed4e);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 10px;
+}
+
+.follow-list-header p {
+  color: #999;
+  font-size: 16px;
+}
+
+/* Controls (Search & Filter) */
+.follow-controls {
+  max-width: 1200px;
+  margin: 0 auto 30px;
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.search-input,
+.sort-select {
+  padding: 12px 16px;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 10px;
+  color: #fff;
+  font-size: 14px;
+  font-family: inherit;
+  transition: all 0.3s ease;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 250px;
+}
+
+.search-input::placeholder {
+  color: #666;
+}
+
+.search-input:focus,
+.sort-select:focus {
+  outline: none;
+  border-color: #ffd700;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
+}
+
+.sort-select {
+  min-width: 200px;
+  cursor: pointer;
+}
+
+.sort-select option {
+  background: #1a1a1a;
+  color: #fff;
+}
+
+/* Alert */
+.alert {
+  max-width: 1200px;
+  margin: 0 auto 20px;
+  padding: 15px 20px;
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.alert-error {
+  background-color: rgba(255, 74, 74, 0.1);
+  border: 1px solid #ff4a4a;
+  color: #ff4a4a;
+}
+
+.alert button {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.loading {
+  max-width: 1200px;
+  margin: 40px auto;
+  text-align: center;
+  color: #999;
+  font-size: 18px;
+}
+
+/* Users grid */
+.users-grid {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.user-card {
+  background: linear-gradient(135deg, #1a1a1a, #2a2a2a);
+  border: 1px solid #333;
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: all 0.3s ease;
+  animation: fadeIn 0.5s ease;
+}
+
+.user-card:hover {
+  border-color: #ffd700;
+  box-shadow: 0 10px 30px rgba(255, 215, 0, 0.1);
+  transform: translateY(-5px);
+}
+
+.user-avatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #333;
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
+}
+
+.user-card:hover .user-avatar {
+  border-color: #ffd700;
+}
+
+.user-info {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.user-info h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.user-info h3 .verified {
+  color: #ffd700;
+  font-size: 14px;
+}
+
+.user-info p.address {
+  margin: 0;
+  color: #666;
+  font-size: 13px;
+  font-family: monospace;
+}
+
+/* Badges */
+.user-badges {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 12px 0;
+  flex-wrap: wrap;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: #222;
+  border: 1px solid #333;
+  border-radius: 50%;
+  font-size: 16px;
+  transition: all 0.3s ease;
+}
+
+.badge:hover {
+  background: rgba(255, 215, 0, 0.1);
+  border-color: #ffd700;
+  transform: scale(1.1);
+}
+
+/* Stats */
+.user-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 12px;
+  background: #0a0a0a;
+  border-radius: 12px;
+  font-size: 13px;
+  color: #999;
+}
+
+.stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stat strong {
+  color: #ffd700;
+  font-weight: 700;
+}
+
+/* Follow button */
+.btn-follow {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  background: linear-gradient(135deg, #ffd700, #ffed4e);
+  color: #000;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-follow:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(255, 215, 0, 0.3);
+}
+
+.btn-follow.following {
+  background: #222;
+  color: #ffd700;
+  border: 2px solid #ffd700;
+}
+
+.btn-follow.following:hover {
+  background: rgba(255, 215, 0, 0.1);
+}
+
+/* Empty state */
+.empty-state {
+  max-width: 1200px;
+  margin: 60px auto;
+  text-align: center;
+  padding: 60px 20px;
+  background: rgba(255, 215, 0, 0.05);
+  border: 2px dashed #333;
+  border-radius: 16px;
+}
+
+.empty-state p {
+  color: #999;
+  font-size: 18px;
+}
+
+/* Pagination */
+.pagination {
+  max-width: 1200px;
+  margin: 40px auto;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+}
+
+.pagination button {
+  padding: 10px 15px;
+  background: #222;
+  border: 1px solid #333;
+  color: #999;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+}
+
+.pagination button:hover:not(:disabled) {
+  background: #ffd700;
+  color: #000;
+  border-color: #ffd700;
+}
+
+.pagination button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.pagination span {
+  color: #999;
+  font-weight: 600;
+  min-width: 70px;
+  text-align: center;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .follow-list-container {
+    padding: 20px 15px;
+  }
+
+  .follow-list-header h1 {
+    font-size: 28px;
+  }
+
+  .users-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+
+  .user-avatar {
+    width: 80px;
+    height: 80px;
+  }
+
+  .user-info h3 {
+    font-size: 16px;
+  }
+}

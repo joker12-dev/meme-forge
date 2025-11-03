@@ -1,0 +1,193 @@
+.ranked-page {
+  min-height: 100vh;
+  background: #111;
+  color: #F0B90B;
+  font-family: 'Inter', 'Roboto', Arial, sans-serif;
+  padding: 0;
+  margin: 0;
+  position: relative;
+}
+
+.ranked-header {
+  text-align: center;
+  padding-top: 48px;
+  padding-bottom: 16px;
+  position: relative;
+  background: linear-gradient(90deg, #111 25%, #f0bb0b9c 50%, #111 75%);
+}
+
+.ranked-title {
+  font-size: 3rem;
+  font-weight: 900;
+  letter-spacing: 2px;
+  background: #111;
+  margin-bottom: 8px;
+  box-shadow: 5px 20px 30px #111;
+  padding: 12px 16px;
+}
+
+.ranked-update {
+  font-size: 1rem;
+  color: #c7c7c7;
+  opacity: 0.7;
+  margin-bottom: 24px;
+}
+
+.ranked-bg-coins {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 220px;
+  background-size: contain;
+  opacity: 0.18;
+  z-index: 0;
+}
+
+.ranked-main {
+  display: flex;
+  gap: 32px;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 32px 0 64px 0;
+  z-index: 2;
+}
+
+.ranked-section {
+  background: rgba(20, 20, 20, 0.98);
+  border-radius: 18px;
+  box-shadow: 0 4px 32px #bfff2c22;
+  padding: 32px 24px;
+  min-width: 420px;
+  max-width: 480px;
+  flex: 1;
+}
+
+.ranked-section-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #F0B90B;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ranked-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.ranked-item {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 18px 0;
+  border-bottom: 1px solid #222;
+  position: relative;
+}
+
+.ranked-item:last-child {
+  border-bottom: none;
+}
+
+.ranked-item-hover {
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.2s, background 0.2s;
+  padding: 1rem;
+}
+
+.ranked-item-hover:hover {
+
+  border-color: #ffd700;
+  background: linear-gradient(90deg, #141414fa 0%, #96760c 50%, #141414fa 100%);
+  transform: translateY(-2px) scale(1.03);
+}
+
+.ranked-rank {
+  font-size: 1.3rem;
+  font-weight: 900;
+  color: #F0B90B;
+  width: 38px;
+  text-align: center;
+}
+
+.rank-badge {
+  display: inline-block;
+  font-size: 1.2rem;
+  font-weight: 900;
+  background: linear-gradient(90deg, #eaff6b 0%, #F0B90B 100%);
+  color: #ffffff;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  line-height: 32px;
+  text-align: center;
+  box-shadow: 0 2px 8px #eaff6b55;
+  margin-right: 4px;
+}
+
+.rank-1 { background: linear-gradient(90deg, #fff700 0%, #bfff2c 100%); }
+.rank-2 { background: linear-gradient(90deg, #bfff2c 0%, #fff700 100%); }
+.rank-3 { background: linear-gradient(90deg, #eaff6b 0%, #bfff2c 100%); }
+
+.ranked-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  object-fit: cover;
+  box-shadow: 0 2px 12px #bfff2c44;
+  background: #222;
+}
+
+.ranked-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ranked-name {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.ranked-symbol {
+  font-size: 0.95rem;
+  color: #bfff2c;
+  font-weight: 700;
+}
+
+.ranked-marketcap, .ranked-volume {
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: #eaff6b;
+  margin-top: 2px;
+}
+
+.ranked-marketcap-label, .ranked-volume-label {
+  font-size: 0.85rem;
+  color: #bfff2c;
+  opacity: 0.7;
+}
+
+.ranked-loading {
+  text-align: center;
+  font-size: 1.2rem;
+  color: #eaff6b;
+  margin-top: 32px;
+}
+
+@media (max-width: 1100px) {
+  .ranked-main {
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+  }
+  .ranked-section {
+    min-width: 320px;
+    max-width: 98vw;
+  }
+}
