@@ -1,0 +1,24 @@
+{
+  "name": "meme-token-contracts",
+  "version": "1.0.0",
+  "description": "Smart contracts for meme token platform",
+  "main": "index.js",
+  "scripts": {
+    "test": "hardhat test",
+    "compile": "hardhat compile",
+    "deploy:local": "npx hardhat run scripts/deploy.js --network hardhat",
+    "deploy:bsc": "npx hardhat run scripts/deploy.js --network bsc",
+    "deploy:testnet": "npx hardhat run scripts/deploy.js --network bscTestnet",
+    "verify:memetoken": "npx hardhat verify --network bscTestnet",
+    "verify:factory": "npx hardhat verify --network bscTestnet",
+    "verify:liquidityadder": "npx hardhat verify --network bscTestnet"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.26.3"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^4.9.3",
+    "dotenv": "^16.6.1"
+  }
+}

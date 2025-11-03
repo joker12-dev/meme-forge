@@ -1,0 +1,9 @@
+{
+  "network": "bscTestnet",
+  "timestamp": "2025-11-02T08:21:01.472Z",
+  "memeTokenTemplate": "0x7B0f0Bdf91E119f8fE3C79B775e306575d8f55CE",
+  "liquidityAdder": "0x4171a62e819E7cAf05B29227dc081506412d91a7",
+  "tokenFactory": "0xE92b066F66C7225fa508dffD461cD62Ed4b767FC",
+  "pancakeRouter": "0xD99D1c33F9fC3444f8101754aBC46c52416550D1",
+  "platformWallet": "0x4169B7B19Fb2228a5eaaE84a43e42aFDCE15741C"
+}
