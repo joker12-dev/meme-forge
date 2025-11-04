@@ -119,28 +119,28 @@ async function initDatabase() {
         value: 'Meme Forge',
         type: 'string',
         category: 'general',
-        description: 'Site adı'
+        description: 'Site name'
       },
       {
         key: 'site_description',
         value: 'Meme Forge - Create your own token',
         type: 'string',
         category: 'general',
-        description: 'Site açıklaması'
+        description: 'Site description'
       },
       {
         key: 'token_creation_enabled',
         value: 'true',
         type: 'boolean',
         category: 'features',
-        description: 'Token oluşturma özelliği aktif mi?'
+        description: 'Is token creation feature enabled?'
       },
       {
         key: 'trading_enabled',
         value: 'true',
         type: 'boolean',
         category: 'features',
-        description: 'Trading özelliği aktif mi?'
+        description: 'Is trading feature enabled?'
       },
       {
         key: 'min_token_supply',
@@ -161,7 +161,7 @@ async function initDatabase() {
         value: 'contact@fourmeme.com',
         type: 'string',
         category: 'contact',
-        description: 'İletişim email adresi'
+        description: 'Contact email address'
       }
     ];
 

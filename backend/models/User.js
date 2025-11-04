@@ -18,7 +18,7 @@ const User = sequelize.define('User', {
       this.setDataValue('walletAddress', value.toLowerCase());
     }
   },
-  // Profil Bilgileri
+  // Profile Information
   username: {
     type: DataTypes.STRING(50),
     allowNull: true,
@@ -26,7 +26,7 @@ const User = sequelize.define('User', {
     validate: {
       len: {
         args: [3, 50],
-        msg: 'Kullanıcı adı 3-50 karakter arasında olmalıdır'
+        msg: 'Username must be between 3-50 characters'
       }
     }
   },
@@ -56,7 +56,7 @@ const User = sequelize.define('User', {
     defaultValue: ''
   },
   
-  // Sosyal Linkler
+  // Social Links
   socialLinks: {
     type: DataTypes.JSONB,
     defaultValue: {}
@@ -78,7 +78,7 @@ const User = sequelize.define('User', {
     allowNull: true
   },
   
-  // Token & Aktivite Bilgileri
+  // Token & Activity Information
   tokensCreated: {
     type: DataTypes.ARRAY(DataTypes.STRING),
     defaultValue: []
@@ -88,7 +88,7 @@ const User = sequelize.define('User', {
     defaultValue: 0
   },
   
-  // Rozetler & Başarılar
+  // Badges & Achievements
   badges: {
     type: DataTypes.ARRAY(DataTypes.STRING),
     defaultValue: []
@@ -98,24 +98,24 @@ const User = sequelize.define('User', {
     defaultValue: false
   },
   
-  // Admin yönetimi
+  // Admin management
   status: {
     type: DataTypes.ENUM('active', 'suspended', 'banned'),
     defaultValue: 'active',
-    comment: 'Kullanıcı durumu: active, suspended (geçici askıya), banned (kalıcı ban)'
+    comment: 'User status: active, suspended (temporary), banned (permanent)'
   },
   banReason: {
     type: DataTypes.TEXT,
     allowNull: true,
-    comment: 'Ban sebebi'
+    comment: 'Reason for ban'
   },
   banExpiresAt: {
     type: DataTypes.DATE,
     allowNull: true,
-    comment: 'Süreli ban için bitiş tarihi'
+    comment: 'Expiration date for temporary ban'
   },
   
-  // Sosyal Metrikler
+  // Social Metrics
   voteCount: {
     type: DataTypes.INTEGER,
     defaultValue: 0
@@ -159,7 +159,7 @@ const User = sequelize.define('User', {
     defaultValue: 0
   },
   
-  // İstatistikler
+  // Statistics
   stats: {
     type: DataTypes.JSONB,
     defaultValue: {
@@ -171,7 +171,7 @@ const User = sequelize.define('User', {
     }
   },
   
-  // Zaman Bilgileri
+  // Time Information
   lastLogin: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW
@@ -244,7 +244,7 @@ User.findOrCreateByAddress = async function(walletAddress) {
 User.findByAddress = async function(walletAddress) {
   const user = await this.findOne({
     where: { walletAddress: walletAddress.toLowerCase() }
-    // attributes yazma - tüm field'ları getir
+    // Do not include attributes - return all fields
   });
   console.log('🔍 [findByAddress] User found:', user ? user.id : 'null');
   if (user) {
@@ -282,10 +282,10 @@ User.prototype.calculateBadges = function() {
   const followers = this.followers || 0;
   const successfulLaunches = this.successfulLaunches || 0;
 
-  // 🏆 Top Creator: 10+ token açan
+  // 🏆 Top Creator: 10+ tokens created
   if (tokenCount >= 10) computedBadges.push('Top Creator');
   
-  // 📅 Early Adopter: 2023'ten önce katılan
+  // 📅 Early Adopter: joined before 2023
   if (this.createdAt && new Date(this.createdAt).getFullYear() <= 2023) {
     computedBadges.push('Early Adopter');
   }
@@ -293,22 +293,22 @@ User.prototype.calculateBadges = function() {
   // 💎 Diamond Hands: 90+ trustScore
   if (trustScore >= 90) computedBadges.push('Diamond Hands');
   
-  // ⭐ Verified Creator: 10+ token ve 4+ rating
+  // ⭐ Verified Creator: 10+ tokens and 4+ rating
   if (tokenCount >= 10 && avgRating >= 4) computedBadges.push('Verified Creator');
   
-  // 🚀 Rocket Launcher: 5+ başarılı token
+  // 🚀 Rocket Launcher: 5+ successful tokens
   if (successfulLaunches >= 5) computedBadges.push('Rocket Launcher');
   
-  // 👥 Community Leader: 100+ takipçi
+  // 👥 Community Leader: 100+ followers
   if (followers >= 100) computedBadges.push('Community Leader');
   
-  // ⚡ Trending Creator: 50+ oy
+  // ⚡ Trending Creator: 50+ votes
   if (votes >= 50) computedBadges.push('Trending Creator');
   
-  // 🎯 Master Builder: 20+ token
+  // 🎯 Master Builder: 20+ tokens
   if (tokenCount >= 20) computedBadges.push('Master Builder');
   
-  // 💯 Perfect Score: 5.0 rating ve 5+ token
+  // 💯 Perfect Score: 5.0 rating and 5+ tokens
   if (avgRating >= 4.9 && tokenCount >= 5) computedBadges.push('Perfect Score');
   
   // 🌟 Legendary: Multiple conditions
@@ -316,10 +316,10 @@ User.prototype.calculateBadges = function() {
     computedBadges.push('Legendary');
   }
   
-  // Admin tarafından eklenen rozetleri koruyalım
+  // Preserve admin-added badges
   const adminBadges = this.badges || [];
   const allBadges = [...computedBadges, ...adminBadges];
-  this.badges = [...new Set(allBadges)]; // Duplicates'i kaldır, hem hesaplanan hem admin rozetleri var
+  this.badges = [...new Set(allBadges)]; // Remove duplicates - both computed and admin badges
   return this.badges;
 };
 
@@ -359,23 +359,23 @@ User.prototype.toProfileResponse = function(tokens = []) {
     bio: this.bio,
     description: this.description,
     
-    // Sosyal Linkler
+    // Social Links
     twitter: this.twitter,
     telegram: this.telegram,
     website: this.website,
     discord: this.discord,
     socialLinks: this.socialLinks,
     
-    // Token Bilgileri
+    // Token Information
     tokens: tokens,
     totalTokensCreated: this.totalTokensCreated,
     tokensCreated: this.tokensCreated,
     
-    // Rozetler
+    // Badges
     badges: this.badges,
     isVerified: this.isVerified,
     
-    // Sosyal Metrikler
+    // Social Metrics
     voteCount: this.voteCount,
     trustScore: this.trustScore,
     followers: this.followers,
@@ -385,10 +385,10 @@ User.prototype.toProfileResponse = function(tokens = []) {
     avgRating: this.avgRating,
     successfulLaunches: this.successfulLaunches,
     
-    // İstatistikler
+    // Statistics
     stats: this.stats,
     
-    // Zaman Bilgileri
+    // Time Information
     lastLogin: this.lastLogin,
     lastActive: this.lastActive,
     createdAt: this.createdAt,

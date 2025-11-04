@@ -1,0 +1,405 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model
+model User {
+  id                  String   @id @default(uuid())
+  walletAddress       String   @unique @db.VarChar(42)
+  
+  // Profile Information
+  username            String?  @unique @db.VarChar(50)
+  email               String?  @unique @db.VarChar(255)
+  profileImage        String?
+  description         String?
+  bio                 String?  @db.VarChar(500)
+  
+  // Social Links
+  socialLinks         Json     @default("{}")
+  twitter             String?
+  telegram            String?
+  website             String?
+  discord             String?
+  
+  // Token & Activity Information
+  tokensCreated       String[] @default([])
+  totalTokensCreated  Int      @default(0)
+  
+  // Badges & Achievements
+  badges              String[] @default([])
+  isVerified          Boolean  @default(false)
+  
+  // Admin management
+  status              UserStatus @default(ACTIVE)
+  banReason           String?
+  banExpiresAt        DateTime?
+  
+  // Social Metrics
+  voteCount           Int      @default(0)
+  trustScore          Int      @default(0)
+  followersCount      Int      @default(0)
+  followingCount      Int      @default(0)
+  followersList       String[] @default([])
+  followingList       String[] @default([])
+  followers           Int      @default(0)
+  following           Int      @default(0)
+  avgRating           Float    @default(0)
+  successfulLaunches  Int      @default(0)
+  
+  // Statistics
+  stats               Json     @default("{\"totalTokens\":0,\"followers\":0,\"avgRating\":0,\"successfulLaunches\":0,\"totalVolume\":\"$0\"}")
+  
+  // Time Information
+  lastLogin           DateTime @default(now())
+  lastActive          DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  
+  // Relations
+  tokens              Token[]
+  trades              Trade[]
+  posts               Post[]
+  comments            Comment[]
+  postLikes           PostLike[]
+  commentLikes        CommentLike[]
+  
+  @@index([walletAddress])
+  @@index([username])
+  @@index([status])
+  @@index([createdAt])
+  @@index([followersCount])
+  @@index([isVerified])
+  @@index([lastLogin])
+  @@index([totalTokensCreated])
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+}
+
+// Token model
+model Token {
+  id                    String   @id @default(uuid())
+  tokenAddress          String   @unique @db.VarChar(42)
+  name                  String   @db.VarChar(100)
+  symbol                String   @db.VarChar(10)
+  description           String?
+  logo                  String?
+  website               String?
+  twitter               String?
+  telegram              String?
+  discord               String?
+  
+  // Token Details
+  totalSupply           String   @default("0")
+  decimals              Int      @default(18)
+  contractAddress       String?  @db.VarChar(42)
+  
+  // LP Information
+  lpLocked              Boolean  @default(false)
+  lpLockEndDate         DateTime?
+  lpTokenAddress        String?  @db.VarChar(42)
+  
+  // Stats
+  currentPrice          Float    @default(0)
+  marketCap             Float    @default(0)
+  holders               Int      @default(0)
+  totalVolume           String   @default("$0")
+  priceChangePercent    Float    @default(0)
+  
+  // Creator Info
+  creatorUserId         String
+  creator               User     @relation(fields: [creatorUserId], references: [id], onDelete: CASCADE)
+  
+  // Status
+  status                String   @default("active")
+  featured              Boolean  @default(false)
+  verified              Boolean  @default(false)
+  
+  // Time Information
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  // Relations
+  trades                Trade[]
+  priceHistory          PriceHistory[]
+  hypeEntries           TokenHype[]
+  campaigns             Campaign[]
+  votes                 Vote[]
+  posts                 Post[]
+  
+  @@index([tokenAddress])
+  @@index([creatorUserId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([featured])
+  @@index([verified])
+}
+
+// Trade model
+model Trade {
+  id            String   @id @default(uuid())
+  user          String   @db.VarChar(42)
+  userObj       User     @relation(fields: [user], references: [walletAddress], onDelete: CASCADE)
+  
+  tokenId       String
+  token         Token    @relation(fields: [tokenId], references: [id], onDelete: CASCADE)
+  
+  type          TradeType
+  amount        Float
+  price         Float
+  total         Float
+  txHash        String?  @db.VarChar(255)
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([user])
+  @@index([tokenId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+enum TradeType {
+  BUY
+  SELL
+}
+
+// Price History model
+model PriceHistory {
+  id        String   @id @default(uuid())
+  tokenId   String
+  token     Token    @relation(fields: [tokenId], references: [id], onDelete: CASCADE)
+  
+  price     Float
+  timestamp DateTime @default(now())
+  
+  @@index([tokenId])
+  @@index([timestamp])
+}
+
+// Token Hype model
+model TokenHype {
+  id        String   @id @default(uuid())
+  tokenId   String
+  token     Token    @relation(fields: [tokenId], references: [id], onDelete: CASCADE)
+  
+  hypeScore Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([tokenId])
+}
+
+// Campaign model
+model Campaign {
+  id              String   @id @default(uuid())
+  tokenId         String
+  token           Token    @relation(fields: [tokenId], references: [id], onDelete: CASCADE)
+  
+  name            String   @db.VarChar(200)
+  description     String?
+  startDate       DateTime
+  endDate         DateTime
+  budget          Float
+  status          String   @default("active")
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([tokenId])
+  @@index([status])
+}
+
+// Vote model
+model Vote {
+  id        String   @id @default(uuid())
+  tokenId   String
+  token     Token    @relation(fields: [tokenId], references: [id], onDelete: CASCADE)
+  
+  userId    String   @db.VarChar(42)
+  voteType  VoteType
+  
+  createdAt DateTime @default(now())
+  
+  @@unique([tokenId, userId])
+  @@index([tokenId])
+  @@index([userId])
+}
+
+enum VoteType {
+  UP
+  DOWN
+}
+
+// Post model
+model Post {
+  id              String   @id @default(uuid())
+  authorId        String
+  author          User     @relation(fields: [authorId], references: [id], onDelete: CASCADE)
+  
+  tokenId         String?
+  token           Token?   @relation(fields: [tokenId], references: [id], onDelete: SET NULL)
+  
+  title           String   @db.VarChar(255)
+  content         String
+  image           String?
+  
+  likes           Int      @default(0)
+  comments        Comment[]
+  postLikes       PostLike[]
+  
+  status          String   @default("active")
+  featured        Boolean  @default(false)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([authorId])
+  @@index([tokenId])
+  @@index([createdAt])
+  @@index([featured])
+}
+
+// Comment model
+model Comment {
+  id              String   @id @default(uuid())
+  postId          String
+  post            Post     @relation(fields: [postId], references: [id], onDelete: CASCADE)
+  
+  authorId        String
+  author          User     @relation(fields: [authorId], references: [id], onDelete: CASCADE)
+  
+  content         String
+  likes           Int      @default(0)
+  commentLikes    CommentLike[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([postId])
+  @@index([authorId])
+  @@index([createdAt])
+}
+
+// Post Like model
+model PostLike {
+  id        String   @id @default(uuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: CASCADE)
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: CASCADE)
+  
+  createdAt DateTime @default(now())
+  
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
+}
+
+// Comment Like model
+model CommentLike {
+  id        String   @id @default(uuid())
+  commentId String
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: CASCADE)
+  
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: CASCADE)
+  
+  createdAt DateTime @default(now())
+  
+  @@unique([commentId, userId])
+  @@index([commentId])
+  @@index([userId])
+}
+
+// Site Settings model
+model SiteSettings {
+  id          String   @id @default(uuid())
+  key         String   @unique @db.VarChar(100)
+  value       String
+  type        String   @db.VarChar(50)
+  category    String   @db.VarChar(50)
+  description String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([key])
+  @@index([category])
+}
+
+// Activity Log model
+model ActivityLog {
+  id          String   @id @default(uuid())
+  userId      String?  @db.VarChar(42)
+  action      String   @db.VarChar(100)
+  details     Json?
+  ipAddress   String?  @db.VarChar(45)
+  userAgent   String?
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// Admin model
+model Admin {
+  id          String   @id @default(uuid())
+  username    String   @unique @db.VarChar(100)
+  email       String   @unique @db.VarChar(255)
+  password    String
+  role        AdminRole @default(ADMIN)
+  permissions Json     @default("{}")
+  status      AdminStatus @default(ACTIVE)
+  
+  lastLogin   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([username])
+  @@index([email])
+  @@index([role])
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+  MODERATOR
+}
+
+enum AdminStatus {
+  ACTIVE
+  INACTIVE
+  BANNED
+}
+
+// Contact Message model
+model ContactMessage {
+  id        String   @id @default(uuid())
+  name      String   @db.VarChar(100)
+  email     String   @db.VarChar(255)
+  subject   String   @db.VarChar(255)
+  message   String
+  status    String   @default("new")
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@index([email])
+  @@index([status])
+  @@index([createdAt])
+}

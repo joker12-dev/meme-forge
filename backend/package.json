@@ -5,9 +5,14 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "prisma:migrate": "npx prisma migrate dev",
+    "prisma:push": "npx prisma db push",
+    "prisma:generate": "npx prisma generate",
+    "prisma:studio": "npx prisma studio"
   },
   "dependencies": {
+    "@prisma/client": "^5.8.0",
     "bcryptjs": "^3.0.2",
     "cloudinary": "^2.8.0",
     "compression": "^1.7.4",
@@ -30,10 +35,12 @@
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^6.1.0",
     "@nomicfoundation/hardhat-verify": "^3.0.3",
+    "@prisma/cli": "^5.8.0",
     "dotenv": "^17.2.3",
     "hardhat": "^3.0.7",
     "hardhat-gas-reporter": "^2.3.0",
     "nodemon": "^3.0.1",
+    "prisma": "^5.8.0",
     "solidity-coverage": "^0.8.16"
   },
   "keywords": [],
