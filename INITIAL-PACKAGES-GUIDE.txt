@@ -1,0 +1,493 @@
+╔════════════════════════════════════════════════════════════════════════════════╗
+║                                                                                ║
+║           🎯 SUNUCU TERMINAL'İNDE ÇALIŞTIRILACAK BAŞLANGIÇ KOMUTLARI          ║
+║                                                                                ║
+║                         Ubuntu 22.04 LTS Fresh Server                          ║
+║                                                                                ║
+╚════════════════════════════════════════════════════════════════════════════════╝
+
+
+📋 ADIM ADIM - SUNUCU TERMİNAL KOMUTLARI
+════════════════════════════════════════════════════════════════════════════════
+
+### ADIM 0: SUNUCUYA BAĞLAN
+────────────────────────────────────────────────────────────────────────────────
+
+ssh root@92.249.61.60
+
+# Enter password when prompted
+
+
+### ADIM 1: SİSTEMİ GÜNCELLE
+────────────────────────────────────────────────────────────────────────────────
+
+sudo apt update
+sudo apt upgrade -y
+sudo apt autoremove -y
+
+✅ Tahmini Süre: 2-3 dakika
+
+
+### ADIM 2: BUILD TOOLS KURU
+────────────────────────────────────────────────────────────────────────────────
+
+sudo apt install -y build-essential gcc g++ make python3-dev python3-pip libssl-dev
+
+✅ Tahmini Süre: 1-2 dakika
+
+
+### ADIM 3: GIT & İNDİRME ARAÇLARI KURU
+────────────────────────────────────────────────────────────────────────────────
+
+sudo apt install -y git curl wget
+
+git --version
+
+✅ Tahmini Süre: 1 dakika
+
+
+### ADIM 4: SİSTEM ARAÇLARI KURU
+────────────────────────────────────────────────────────────────────────────────
+
+sudo apt install -y vim nano htop net-tools zip unzip openssl
+
+✅ Tahmini Süre: 1 dakika
+
+
+### ADIM 5: NODE.JS 18 LTS KURU ⭐ (ÖNEMLİ!)
+────────────────────────────────────────────────────────────────────────────────
+
+# 1. Node.js repository'sini ekle
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+
+# 2. Node.js kur
+sudo apt install -y nodejs
+
+# 3. Sürümleri kontrol et
+node --version     # v18.x.x olmalı
+npm --version      # 9.x.x olmalı
+
+✅ Tahmini Süre: 2-3 dakika
+
+
+### ADIM 6: POSTGRESQLi KURU ⭐ (ÖNEMLİ!)
+────────────────────────────────────────────────────────────────────────────────
+
+# 1. PostgreSQL'i kur
+sudo apt install -y postgresql postgresql-contrib
+
+# 2. PostgreSQL'i başlat
+sudo systemctl start postgresql
+sudo systemctl enable postgresql
+
+# 3. Durumu kontrol et
+sudo systemctl status postgresql
+
+✅ Tahmini Süre: 2-3 dakika
+
+
+### ADIM 7: NGINX KURU ⭐ (ÖNEMLİ!)
+────────────────────────────────────────────────────────────────────────────────
+
+# 1. NGINX'i kur
+sudo apt install -y nginx
+
+# 2. NGINX'i başlat
+sudo systemctl start nginx
+sudo systemctl enable nginx
+
+# 3. Durumu kontrol et
+sudo systemctl status nginx
+
+# 4. Sürüm kontrol et
+nginx -v
+
+✅ Tahmini Süre: 1 dakika
+
+
+### ADIM 8: CERTBOT KURU (SSL/HTTPS) ⭐
+────────────────────────────────────────────────────────────────────────────────
+
+# 1. Certbot ve NGINX plugin'i kur
+sudo apt install -y certbot python3-certbot-nginx
+
+# 2. Sürüm kontrol et
+certbot --version
+
+✅ Tahmini Süre: 1 dakika
+
+
+### ADIM 9: PM2 KURU (PROCESS MANAGER) ⭐
+────────────────────────────────────────────────────────────────────────────────
+
+# 1. PM2'yi global olarak kur
+sudo npm install -g pm2
+
+# 2. Sürüm kontrol et
+pm2 --version
+
+✅ Tahmini Süre: 30 saniye - 1 dakika
+
+
+### ADIM 10: GÜVENLIK ARAÇLARI KURU (OPTIONAL)
+────────────────────────────────────────────────────────────────────────────────
+
+sudo apt install -y fail2ban ufw tmux screen
+
+✅ Tahmini Süre: 1 dakika
+
+
+### ADIM 11: KÜRULUMLARı DOĞRULA
+────────────────────────────────────────────────────────────────────────────────
+
+echo "=== Installed Versions ==="
+git --version
+node --version
+npm --version
+sudo -u postgres psql --version
+nginx -v
+pm2 --version
+certbot --version
+
+✅ Hepsi başarılı olmalı
+
+
+════════════════════════════════════════════════════════════════════════════════
+⚡ HIZLI BAŞLANGAÇ - TÜM KOMUTLARI ARADA ÇALIŞT
+════════════════════════════════════════════════════════════════════════════════
+
+# Eğer tüm paketleri tek komutla yüklemek istersen:
+
+sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y && \
+sudo apt install -y build-essential gcc g++ make python3-dev python3-pip libssl-dev \
+  git curl wget vim nano htop net-tools zip unzip openssl postgresql postgresql-contrib \
+  nginx certbot python3-certbot-nginx fail2ban ufw tmux screen && \
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash - && \
+sudo apt install -y nodejs && \
+sudo npm install -g pm2 && \
+sudo systemctl start postgresql nginx && \
+sudo systemctl enable postgresql nginx && \
+echo "✅ All packages installed successfully!"
+
+✅ Tahmini Toplam Süre: 12-15 dakika
+
+
+════════════════════════════════════════════════════════════════════════════════
+📦 PAKETLER VE AMAÇLARI
+════════════════════════════════════════════════════════════════════════════════
+
+GELİŞTİRME ARAÇLARI:
+  • build-essential  → C/C++ derleyici
+  • gcc, g++         → Kompilasyon için gerekli
+  • make             → Build otomasyon
+  • python3-dev      → Python geliştirme kütüphaneleri
+  • libssl-dev       → SSL/TLS kütüphaneleri
+
+VERSİYON KONTROL & İNDİRME:
+  • git              → GitHub'dan kod indirmek için
+  • curl, wget       → Web'ten dosya indirmek için
+
+SİSTEM ARAÇLARI:
+  • vim, nano        → Dosya düzenlemek için
+  • htop             → Sistem kaynaklarını izlemek için
+  • net-tools        → Network kontrol etmek için
+  • zip, unzip       → Sıkıştırılmış dosyalar için
+
+ANA UYGULAMALAR:
+  • nodejs           → JavaScript runtime (v18 LTS) ⭐
+  • npm              → Node paketleri yüklemek için ⭐
+  • postgresql       → Veritabanı sunucusu ⭐
+  • nginx            → Web sunucusu & reverse proxy ⭐
+  • certbot          → SSL sertifikaları (Let's Encrypt) ⭐
+  • pm2              → Node.js process manager ⭐
+
+GÜVENLİK:
+  • fail2ban         → Brute force saldırılara karşı koruma
+  • ufw              → Firewall yapılandırması
+
+
+════════════════════════════════════════════════════════════════════════════════
+📖 DETAYLI KOMUTLAR (HER BİR PAKET)
+════════════════════════════════════════════════════════════════════════════════
+
+1️⃣ SİSTEM GÜNCELLE
+═══════════════════
+
+# Paket listesini güncelle
+sudo apt update
+
+# Tüm paketleri yenile
+sudo apt upgrade -y
+
+# Gereksiz paketleri sil
+sudo apt autoremove -y
+
+
+2️⃣ BUILD TOOLS
+═══════════════
+
+# Hepsi arada
+sudo apt install -y build-essential gcc g++ make python3-dev python3-pip libssl-dev
+
+# Teker teker:
+sudo apt install -y build-essential
+sudo apt install -y gcc
+sudo apt install -y g++
+sudo apt install -y make
+sudo apt install -y python3-dev
+sudo apt install -y python3-pip
+sudo apt install -y libssl-dev
+
+
+3️⃣ GIT & İNDİRME
+══════════════════
+
+sudo apt install -y git
+sudo apt install -y curl
+sudo apt install -y wget
+
+# Kontrol et
+git --version
+
+
+4️⃣ SİSTEM ARAÇLARI
+════════════════════
+
+sudo apt install -y vim
+sudo apt install -y nano
+sudo apt install -y htop
+sudo apt install -y net-tools
+sudo apt install -y zip
+sudo apt install -y unzip
+sudo apt install -y openssl
+
+
+5️⃣ NODE.JS 18
+═══════════════
+
+# Node repository'sini ekle (ÖNEMLİ!)
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+
+# Node.js & npm kur
+sudo apt install -y nodejs
+
+# Kontrol et
+node --version
+npm --version
+
+# Örnek çıktı:
+# v18.13.0 (v18 olmalı)
+# 9.3.0 (9.x olmalı)
+
+
+6️⃣ POSTGRESQLi
+═════════════════
+
+# PostgreSQL & eklentiler kur
+sudo apt install -y postgresql postgresql-contrib
+
+# PostgreSQL'i başlat
+sudo systemctl start postgresql
+
+# Boot'ta otomatik başlasın
+sudo systemctl enable postgresql
+
+# Durumu kontrol et
+sudo systemctl status postgresql
+
+# PostgreSQL'e bağlan
+sudo -u postgres psql
+
+
+7️⃣ NGINX
+══════════
+
+# NGINX kur
+sudo apt install -y nginx
+
+# NGINX'i başlat
+sudo systemctl start nginx
+
+# Boot'ta otomatik başlasın
+sudo systemctl enable nginx
+
+# Durumu kontrol et
+sudo systemctl status nginx
+
+# Versiyon
+nginx -v
+
+# NGINX yapılandırmasını test et
+sudo nginx -t
+
+
+8️⃣ CERTBOT
+═════════════
+
+# Certbot & NGINX plugin'i kur
+sudo apt install -y certbot python3-certbot-nginx
+
+# Versiyon
+certbot --version
+
+
+9️⃣ PM2
+═══════
+
+# PM2'yi global kur
+sudo npm install -g pm2
+
+# Versiyon
+pm2 --version
+
+
+🔟 GÜVENLIK (OPTIONAL)
+═══════════════════════
+
+# Fail2Ban
+sudo apt install -y fail2ban
+sudo systemctl start fail2ban
+sudo systemctl enable fail2ban
+
+# UFW Firewall
+sudo apt install -y ufw
+sudo ufw enable
+sudo ufw allow 22/tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw status
+
+# Terminal Multiplexers
+sudo apt install -y tmux screen
+
+
+════════════════════════════════════════════════════════════════════════════════
+✅ KURULUM BAŞARISI KONTROLLERI
+════════════════════════════════════════════════════════════════════════════════
+
+✅ Git Kurulu
+$ git --version
+Output: git version 2.34.1
+
+✅ Node.js Kurulu
+$ node --version
+Output: v18.x.x
+
+✅ npm Kurulu
+$ npm --version
+Output: 9.x.x
+
+✅ PostgreSQL Kurulu
+$ sudo -u postgres psql --version
+Output: psql (PostgreSQL) 14.x
+
+✅ NGINX Kurulu
+$ nginx -v
+Output: nginx/1.18.0
+
+✅ PM2 Kurulu
+$ pm2 --version
+Output: 5.x.x
+
+✅ Certbot Kurulu
+$ certbot --version
+Output: certbot 2.x.x
+
+
+════════════════════════════════════════════════════════════════════════════════
+⏱️ ZAMAN TAHMİNİ
+════════════════════════════════════════════════════════════════════════════════
+
+Sistem güncelleme:        2-3 dakika
+Build tools:              1-2 dakika
+Git & utilities:          1 dakika
+Node.js 18:               2-3 dakika
+PostgreSQL:               2-3 dakika
+NGINX:                    1 dakika
+Certbot:                  1 dakika
+PM2:                      30 saniye
+Security tools:           1 dakika
+────────────────────────────────────
+TOPLAM:                   ~12-15 dakika
+
+
+════════════════════════════════════════════════════════════════════════════════
+🚀 PAKETLER KURULDUKTAN SONRA
+════════════════════════════════════════════════════════════════════════════════
+
+1. PostgreSQL'i yapılandır:
+   sudo -u postgres psql -c "CREATE USER memeforge WITH PASSWORD 'memeforge123';"
+   sudo -u postgres psql -c "CREATE DATABASE memeforgedb OWNER memeforge;"
+
+2. Projeyi klonla:
+   cd ~
+   git clone https://github.com/joker12-dev/meme-forge.git meme-token
+   cd meme-token
+
+3. Tam setup'ı çalıştır:
+   sudo bash setup.sh
+
+VEYA manuel kurulum için COMPLETE-SERVER-SETUP.md'yi takip et
+
+
+════════════════════════════════════════════════════════════════════════════════
+⚠️ SIKIINTILI DURUMLAR & ÇÖZÜMLER
+════════════════════════════════════════════════════════════════════════════════
+
+❌ Hata: "E: Unable to locate package..."
+✅ Çözüm: sudo apt update çalıştır
+
+❌ Hata: "E: Could not get lock..."
+✅ Çözüm: sudo lsof /var/lib/apt/lists/lock çalıştır ve bekle
+
+❌ Hata: Node.js repository hata
+✅ Çözüm: Tekrar dene:
+   curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+
+❌ Hata: PostgreSQL won't start
+✅ Çözüm: sudo systemctl restart postgresql
+
+❌ Hata: NGINX won't start
+✅ Çözüm: sudo nginx -t ve kontrol et
+
+❌ Hata: Permission denied
+✅ Çözüm: Komutu 'sudo' ile başlat
+
+
+════════════════════════════════════════════════════════════════════════════════
+📂 GITHUB'DA DOSYALAR
+════════════════════════════════════════════════════════════════════════════════
+
+https://github.com/joker12-dev/meme-forge
+
+✅ INITIAL-PACKAGES.md          → Bu dosya (detaylı rehber)
+✅ initial-packages.sh          → Otomatik script
+✅ COMPLETE-SERVER-SETUP.md     → Tam kurulum rehberi
+✅ COMPLETE-SETUP-GUIDE.txt     → Hızlı rehber
+✅ UBUNTU-SETUP-STEPS.md        → Komut referansı
+✅ setup.sh                     → Tam otomatik kurulum
+
+
+════════════════════════════════════════════════════════════════════════════════
+🎯 ÖZETİ MESAJ
+════════════════════════════════════════════════════════════════════════════════
+
+1️⃣ SSH ile sunucuya bağlan
+2️⃣ Paketleri kur (12-15 dakika)
+3️⃣ PostgreSQL user & database oluştur
+4️⃣ Projeyi klonla
+5️⃣ Setup script'i çalıştır VEYA manual kurulum yap
+6️⃣ Enjoy! 🚀
+
+BAŞARILI KURU YAPILACAĞINA İŞARET:
+✅ Tüm paketler başarılı kuruldu
+✅ Sürümler gösteriliyor
+✅ Hiç error yok
+
+
+════════════════════════════════════════════════════════════════════════════════
+
+Status: ✅ READY FOR SERVER
+Date: November 4, 2025
+Version: 1.0
+
