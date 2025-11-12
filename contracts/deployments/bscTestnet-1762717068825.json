@@ -1,0 +1,17 @@
+{
+  "chainId": 97,
+  "chainName": "BSC Testnet",
+  "timestamp": "2025-11-09T19:37:48.825Z",
+  "deployer": "0x4169B7B19Fb2228a5eaaE84a43e42aFDCE15741C",
+  "contracts": {
+    "liquidityLockManager": "0xE53b6776Fb8eC30cE851aAce6243F2F6F7AfE2AE",
+    "liquidityAdder": "0xbfdcd671C10feB2FD7dd89afC1BA806bCEC7f9F0",
+    "memeTokenTemplate": "0xb11901504Ea31ef5E4d961A50E5E1dfF109943C1",
+    "tokenFactory": "0x4D525646F42c35Db4515C9abfA751fa56621158f"
+  },
+  "externalContracts": {
+    "pancakeRouter": "0xD99D1c33F9fC3444f8101754aBC46c52416550D1",
+    "pancakeFactory": "0x6725F303b657a9451d8BA641348b6761A6CC7a17",
+    "wbnb": "0xae13d989daC2f0dEbFf460ac112a837c89baa7cd"
+  }
+}

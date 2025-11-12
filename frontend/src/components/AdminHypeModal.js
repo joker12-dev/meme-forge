@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { FaRocket, FaGem } from 'react-icons/fa';
+import { getBackendURL } from '../utils/api';
 import './AdminHypeModal.css';
 
 const AdminHypeModal = ({ isOpen, onClose, onSave }) => {
@@ -105,7 +107,7 @@ const AdminHypeModal = ({ isOpen, onClose, onSave }) => {
     <div className="admin-hype-modal-overlay" onClick={onClose}>
       <div className="admin-hype-modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="admin-hype-modal-header">
-          <h2>🚀 Yeni Token Hype Oluştur</h2>
+          <h2><FaRocket style={{marginRight: '8px'}} /> Yeni Token Hype Oluştur</h2>
           <button className="admin-hype-modal-close" onClick={onClose}>×</button>
         </div>
 
@@ -197,7 +199,7 @@ const AdminHypeModal = ({ isOpen, onClose, onSave }) => {
                   Oluşturuluyor...
                 </>
               ) : (
-                <>🚀 Hype Oluştur</>
+                <><FaRocket style={{marginRight: '6px'}} /> Hype Oluştur</>
               )}
             </button>
           </div>

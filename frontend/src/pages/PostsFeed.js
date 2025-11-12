@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useWallet } from '../contexts/WalletContext';
+import { getBackendURL } from '../utils/api';
 import VerifiedUsername from '../components/VerifiedUsername';
 import ErrorAlert from '../components/ErrorAlert';
 import {
@@ -46,7 +47,7 @@ const PostsFeed = () => {
   const loadPosts = async () => {
     try {
       setLoading(true);
-      const backendURL = process.env.REACT_APP_BACKEND_URL || '${getBackendURL()}';
+      const backendURL = process.env.REACT_APP_BACKEND_URL || getBackendURL();
 
       let url = `${backendURL}/api/posts?page=${currentPage}&limit=${postsPerPage}`;
 
@@ -87,7 +88,7 @@ const PostsFeed = () => {
     }
 
     try {
-      const backendURL = process.env.REACT_APP_BACKEND_URL || '${getBackendURL()}';
+      const backendURL = process.env.REACT_APP_BACKEND_URL || 'getBackendURL()';
       const response = await fetch(`${backendURL}/api/posts/${postId}/like`, {
         method: 'POST',
         headers: { 'wallet-address': walletAddress }
@@ -122,7 +123,7 @@ const PostsFeed = () => {
 
     try {
       setCommentLoading(true);
-      const backendURL = process.env.REACT_APP_BACKEND_URL || '${getBackendURL()}';
+      const backendURL = process.env.REACT_APP_BACKEND_URL || 'getBackendURL()';
       const response = await fetch(`${backendURL}/api/posts/${postId}/comments`, {
         method: 'POST',
         headers: {
@@ -159,7 +160,7 @@ const PostsFeed = () => {
     }
 
     try {
-      const backendURL = process.env.REACT_APP_BACKEND_URL || '${getBackendURL()}';
+      const backendURL = process.env.REACT_APP_BACKEND_URL || 'getBackendURL()';
       const response = await fetch(`${backendURL}/api/posts/comment/${commentId}/like`, {
         method: 'POST',
         headers: {
@@ -191,7 +192,7 @@ const PostsFeed = () => {
   // Get post details with comments
   const loadPostDetails = async (postId) => {
     try {
-      const backendURL = process.env.REACT_APP_BACKEND_URL || '${getBackendURL()}';
+      const backendURL = process.env.REACT_APP_BACKEND_URL || 'getBackendURL()';
       const response = await fetch(`${backendURL}/api/posts/${postId}`);
       const data = await response.json();
 
@@ -399,9 +400,14 @@ const PostsFeed = () => {
                     <span className="time">{formatDate(post.createdAt)}</span>
                   </div>
                 </div>
-                {post.postType === 'launch' && (
-                  <span className="badge-type launch">LAUNCH</span>
-                )}
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  {post.isPinned && (
+                    <span className="badge-type pinned" title="Sabitlenmiş Post">📌</span>
+                  )}
+                  {post.postType === 'launch' && (
+                    <span className="badge-type launch">LAUNCH</span>
+                  )}
+                </div>
               </div>
 
               {/* Post image */}

@@ -20,7 +20,17 @@ import {
   FaArchive,
   FaExclamationTriangle,
   FaClipboardList,
-  FaSyncAlt
+  FaSyncAlt,
+  FaStar,
+  FaFileAlt,
+  FaRocket,
+  FaFlagCheckered,
+  FaEye,
+  FaExternalLinkAlt,
+  FaGem,
+  FaCrown,
+  FaFire,
+  FaCalendar
 } from 'react-icons/fa';
 import VerifiedUsername from './VerifiedUsername';
 import AdminLogin from './AdminLogin';
@@ -2157,7 +2167,7 @@ const AdminPanel = () => {
       return (
         <div className="users-section">
           <div className="section-header">
-            <h2>👥 Kullanıcı Yönetimi</h2>
+            <h2><FaUsers style={{marginRight: '8px'}} /> Kullanıcı Yönetimi</h2>
           </div>
           <div className="empty-state">
             <FaUsers style={{ fontSize: '48px', color: '#666', marginBottom: '16px' }} />
@@ -2180,7 +2190,7 @@ const AdminPanel = () => {
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <div>
-              <h2 style={{ margin: '0 0 5px 0', fontSize: '28px', fontWeight: 'bold', color: '#F0B90B' }}>👥 Kullanıcı Yönetimi</h2>
+              <h2 style={{ margin: '0 0 5px 0', fontSize: '28px', fontWeight: 'bold', color: '#F0B90B' }}><FaUsers style={{marginRight: '8px'}} /> Kullanıcı Yönetimi</h2>
               <p style={{ margin: '0', opacity: '0.8', fontSize: '14px', color: '#f0f0f0' }}>Toplam {pagination.total} kullanıcı</p>
             </div>
             <div style={{
@@ -2378,7 +2388,7 @@ const AdminPanel = () => {
                               border: '1px solid rgba(240, 185, 11, 0.3)'
                             }}
                           >
-                            ⭐ {badge}
+                            <FaStar style={{marginRight: '4px'}} /> {badge}
                           </span>
                         ))}
                         {user.badges.length > 3 && (
@@ -2475,7 +2485,7 @@ const AdminPanel = () => {
                         e.target.style.transform = 'scale(1)';
                       }}
                     >
-                      ⚙️ Yönet
+                      <FaCog style={{marginRight: '4px'}} /> Yönet
                     </button>
                   </div>
                 </div>
@@ -2810,7 +2820,7 @@ const AdminPanel = () => {
       return (
         <div className="campaigns-section">
           <div className="section-header">
-            <h2>🎉 Kampanya Yönetimi</h2>
+            <h2><FaCalendar style={{marginRight: '8px'}} /> Kampanya Yönetimi</h2>
             <button className="btn-primary" onClick={() => { setEditingItem(null); setShowCampaignModal(true); }}>
               <FaPlus /> Yeni Kampanya
             </button>
@@ -2825,10 +2835,10 @@ const AdminPanel = () => {
 
     const getStatusBadge = (status) => {
       const badges = {
-        draft: { text: '📝 Taslak', class: 'warning' },
-        active: { text: '✓ Aktif', class: 'success' },
-        ended: { text: '⏱ Bitti', class: 'error' },
-        cancelled: { text: '✗ İptal', class: 'error' }
+        draft: { text: <><FaFileAlt style={{marginRight: '4px'}} /> Taslak</>, class: 'warning' },
+        active: { text: <><FaCheck style={{marginRight: '4px'}} /> Aktif</>, class: 'success' },
+        ended: { text: <><FaClock style={{marginRight: '4px'}} /> Bitti</>, class: 'error' },
+        cancelled: { text: <><FaTimes style={{marginRight: '4px'}} /> İptal</>, class: 'error' }
       };
       return badges[status] || { text: status, class: 'default' };
     };
@@ -2836,7 +2846,7 @@ const AdminPanel = () => {
     return (
       <div className="campaigns-section">
         <div className="section-header">
-          <h2>🎉 Kampanya Yönetimi</h2>
+          <h2><FaCalendar style={{marginRight: '8px'}} /> Kampanya Yönetimi</h2>
           <div className="section-actions">
             <select 
               value={filters.status} 
@@ -2913,14 +2923,14 @@ const AdminPanel = () => {
                     </td>
                     <td>
                       <div style={{ fontSize: '13px' }}>
-                        <div>🚀 {new Date(campaign.startDate).toLocaleDateString('tr-TR')}</div>
-                        <div>🏁 {new Date(campaign.endDate).toLocaleDateString('tr-TR')}</div>
+                        <div><FaRocket style={{marginRight: '4px'}} /> {new Date(campaign.startDate).toLocaleDateString('tr-TR')}</div>
+                        <div><FaFlagCheckered style={{marginRight: '4px'}} /> {new Date(campaign.endDate).toLocaleDateString('tr-TR')}</div>
                       </div>
                     </td>
                     <td>
                       <div style={{ fontSize: '13px' }}>
-                        <div>👁️ {campaign.views || 0} görüntülenme</div>
-                        <div>🔗 {campaign.clicks || 0} tıklama</div>
+                        <div><FaEye style={{marginRight: '4px'}} /> {campaign.views || 0} görüntülenme</div>
+                        <div><FaExternalLinkAlt style={{marginRight: '4px'}} /> {campaign.clicks || 0} tıklama</div>
                       </div>
                     </td>
                     <td>
@@ -2983,7 +2993,7 @@ const AdminPanel = () => {
       return (
         <div className="hypes-section">
           <div className="section-header">
-            <h2>🚀 Token Hype Yönetimi</h2>
+            <h2><FaRocket style={{marginRight: '8px'}} /> Token Hype Yönetimi</h2>
             <button className="btn-primary" onClick={() => setShowHypeModal(true)}>
               <FaPlus /> Yeni Hype
             </button>
@@ -2998,19 +3008,19 @@ const AdminPanel = () => {
 
     const getTierBadge = (tier) => {
       const badges = {
-        platinum: { text: '💎 PLATINUM', class: 'platinum', color: '#E5E4E2' },
-        gold: { text: '👑 GOLD', class: 'gold', color: '#FFD700' },
-        silver: { text: '⭐ SILVER', class: 'silver', color: '#C0C0C0' },
-        bronze: { text: '🔥 BRONZE', class: 'bronze', color: '#CD7F32' }
+        platinum: { text: <><FaGem style={{marginRight: '4px'}} /> PLATINUM</>, class: 'platinum', color: '#E5E4E2' },
+        gold: { text: <><FaCrown style={{marginRight: '4px'}} /> GOLD</>, class: 'gold', color: '#FFD700' },
+        silver: { text: <><FaStar style={{marginRight: '4px'}} /> SILVER</>, class: 'silver', color: '#C0C0C0' },
+        bronze: { text: <><FaFire style={{marginRight: '4px'}} /> BRONZE</>, class: 'bronze', color: '#CD7F32' }
       };
       return badges[tier] || { text: tier, class: 'default', color: '#999' };
     };
 
     const getStatusBadge = (status) => {
       const badges = {
-        active: { text: '✓ Aktif', class: 'success' },
-        expired: { text: '⏱ Süresi Doldu', class: 'warning' },
-        cancelled: { text: '✗ İptal Edildi', class: 'error' }
+        active: { text: <><FaCheck style={{marginRight: '4px'}} /> Aktif</>, class: 'success' },
+        expired: { text: <><FaClock style={{marginRight: '4px'}} /> Süresi Doldu</>, class: 'warning' },
+        cancelled: { text: <><FaTimes style={{marginRight: '4px'}} /> İptal Edildi</>, class: 'error' }
       };
       return badges[status] || { text: status, class: 'default' };
     };
@@ -3018,7 +3028,7 @@ const AdminPanel = () => {
     return (
       <div className="hypes-section">
         <div className="section-header">
-          <h2>🚀 Token Hype Yönetimi</h2>
+          <h2><FaRocket style={{marginRight: '8px'}} /> Token Hype Yönetimi</h2>
           <div className="section-actions">
             <select 
               value={filters.status} 
@@ -3178,7 +3188,7 @@ const AdminPanel = () => {
       return (
         <div className="posts-section">
           <div className="section-header">
-            <h2>📝 Postlar Yönetimi</h2>
+            <h2><FaFileAlt style={{marginRight: '8px'}} /> Postlar Yönetimi</h2>
           </div>
           <div className="empty-state">
             <p>Henüz post bulunmuyor</p>
@@ -3190,7 +3200,7 @@ const AdminPanel = () => {
     return (
       <div className="posts-section">
         <div className="section-header">
-          <h2>📝 Postlar Yönetimi</h2>
+          <h2><FaFileAlt style={{marginRight: '8px'}} /> Postlar Yönetimi</h2>
           <div className="section-actions">
             <button 
               className={`btn-filter ${showFilters ? 'active' : ''}`}
@@ -3938,17 +3948,7 @@ const AdminPanel = () => {
         />
       )}
 
-      {showHypeModal && (
-        <AdminHypeModal
-          isOpen={showHypeModal}
-          onClose={() => setShowHypeModal(false)}
-          item={editingItem}
-          onSave={() => {
-            setShowHypeModal(false);
-            loadSectionData();
-          }}
-        />
-      )}
+
 
       {showCampaignModal && (
         <AdminCampaignModal

@@ -2,7 +2,7 @@ require("@nomicfoundation/hardhat-toolbox");
 require("@nomicfoundation/hardhat-verify");
 require("hardhat-gas-reporter");
 require("solidity-coverage");
-require("dotenv").config({ path: __dirname + "/../.env" });
+require("dotenv").config({ path: __dirname + "/.env" });
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
 const BSC_TESTNET_RPC = process.env.BSC_TESTNET_RPC;

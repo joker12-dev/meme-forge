@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
+import { FaRocket, FaStar, FaCrown, FaGem, FaFire } from 'react-icons/fa';
 import './HypeModal.css';
 
 const HypeModal = ({ isOpen, onClose, token }) => {
@@ -104,22 +105,22 @@ const HypeModal = ({ isOpen, onClose, token }) => {
   const tierConfigs = {
     bronze: {
       color: '#CD7F32',
-      icon: '🔥',
+      icon: FaFire,
       name: 'BRONZE'
     },
     silver: {
       color: '#C0C0C0',
-      icon: '⭐',
+      icon: FaStar,
       name: 'SILVER'
     },
     gold: {
       color: '#FFD700',
-      icon: '👑',
+      icon: FaCrown,
       name: 'GOLD'
     },
     platinum: {
       color: '#E5E4E2',
-      icon: '💎',
+      icon: FaGem,
       name: 'PLATINUM'
     }
   };
@@ -130,7 +131,7 @@ const HypeModal = ({ isOpen, onClose, token }) => {
         <button className="hype-modal-close" onClick={onClose}>×</button>
 
         <h2 className="hype-modal-title">
-          🚀 Token Hypelayin!
+          <FaRocket style={{marginRight: '8px'}} /> Token Hypelayin!
         </h2>
 
         <p className="hype-modal-subtitle">
@@ -149,7 +150,7 @@ const HypeModal = ({ isOpen, onClose, token }) => {
                   '--tier-color': config.color
                 }}
               >
-                <div className="tier-icon">{config.icon}</div>
+                <div className="tier-icon"><config.icon /></div>
                 <div className="tier-name">{config.name}</div>
                 <div className="tier-price">{data.price} BNB</div>
                 <div className="tier-duration">{data.duration} Saat</div>

@@ -20,7 +20,7 @@ import {
   FaBolt 
 } from 'react-icons/fa';
 import LPConfirmModal from './LPConfirmModal';
-import { tokenAPI } from '../utils/api';
+import { tokenAPI, getBackendURL } from '../utils/api';
 import { getCurrentAccount, getBalance, switchToBSCNetwork, isConnectedToBSC } from '../utils/wallet';
 import { getProviderByWallet, getSigner, getContractWithSigner, getContractWithProvider, getEthersProvider } from '../utils/walletProviders';
 import { ethers } from 'ethers';
@@ -38,16 +38,15 @@ const CreateToken = () => {
     twitter: '',
     description: '',
     logo: null,
-    // LP için yeni alanlar
-    addLiquidity: false,
+    // LP için yeni alanlar - addLiquidity her zaman TRUE
+    addLiquidity: true,
     bnbAmount: '',
     tokenAmount: '',
     lpLockTime: '30',
     autoBurn: false,
     marketingTax: '0',
-    liquidityTax: '0',
-    // Yeni: Token tier seçimi
-    tokenTier: 'standard'
+    liquidityTax: '0'
+    // REMOVED: tokenTier (no tier selection anymore)
   });
 
   // LP Modal state
@@ -67,26 +66,21 @@ const CreateToken = () => {
 
   
   
-  // YENİ: Fee state'leri
-  const [creationFee, setCreationFee] = useState('0.01');
+  // Fee state - SIMPLIFIED: fixed 0.0001 BNB (no tier selection)
+  const [creationFee, setCreationFee] = useState('0.0001');
   const [feeDistribution, setFeeDistribution] = useState({
     platform: '70%',
     development: '20%',
     marketing: '10%'
   });
-  const [tierFees, setTierFees] = useState({
-    basic: '0.001',      // Optimize edilmiş ücret
-    standard: '0.002',   // Optimize edilmiş ücret
-    premium: '0.003'     // Optimize edilmiş ücret
-  });
+  // REMOVED: tierFees (now fixed fee)
 
-  // Adım başlıkları - Güncellendi
+  // Step titles - REMOVED: Package Selection (Step 2)
   const steps = [
-    { number: 1, title: 'Token Bilgileri', icon: <FaRocket size={20} /> },
-    { number: 2, title: 'Paket Seçimi', icon: <FaCoins size={20} /> },
-    { number: 3, title: 'Liquidity Pool', icon: <FaBolt size={20} /> },
-    { number: 4, title: 'Sosyal Medya', icon: <FaGlobe size={20} /> },
-    { number: 5, title: 'Önizleme', icon: <FaEye size={20} /> }
+    { number: 1, title: 'Token Information', icon: <FaRocket size={20} /> },
+    { number: 2, title: 'Liquidity Pool', icon: <FaBolt size={20} /> },
+    { number: 3, title: 'Social Media', icon: <FaGlobe size={20} /> },
+    { number: 4, title: 'Preview', icon: <FaEye size={20} /> }
   ];
 
   // Bakiye, ağ ve fee kontrolü
@@ -104,50 +98,18 @@ const CreateToken = () => {
         await checkUserBalance();
       }
     } catch (error) {
-      console.error('Cüzdan bağlantı hatası:', error);
+      console.error('Wallet connection error:', error);
     }
   };
 
-  // Factory contract'tan fee bilgilerini çek
+  // Fetch fee information - FIXED: 0.0001 BNB (no tier selection)
   const fetchFeeInfo = async () => {
     try {
-      // Check if MetaMask is available
-      if (!window.ethereum) {
-        console.log('MetaMask not available, using fallback fees');
-        return;
-      }
-
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const factoryContract = new ethers.Contract(
-        process.env.REACT_APP_FACTORY_ADDRESS,
-        [
-          "function getTierFee(string) view returns (uint256)"
-        ],
-        provider
-      );
-
-      const [basicFee, standardFee, premiumFee] = await Promise.all([
-        factoryContract.getTierFee('basic'),
-        factoryContract.getTierFee('standard'),
-        factoryContract.getTierFee('premium')
-      ]);
-
-      setTierFees({
-        basic: ethers.formatEther(basicFee),
-        standard: ethers.formatEther(standardFee),
-        premium: ethers.formatEther(premiumFee)
-      });
-
-      setCreationFee(ethers.formatEther(standardFee));
+      console.log('📊 Using fixed creation fee: 0.0001 BNB');
+      setCreationFee('0.0001');
     } catch (error) {
-      console.error('Fee bilgisi çekme hatası:', error);
-      // Fallback değerler - Optimize edilmiş
-      setTierFees({
-        basic: '0.001',
-        standard: '0.002',
-        premium: '0.003'
-      });
-      setCreationFee('0.002');
+      console.error('Error fetching fee information:', error);
+      setCreationFee('0.0001');
     }
   };
 
@@ -157,7 +119,7 @@ const CreateToken = () => {
       setIsCorrectNetwork(isBSC);
       return isBSC;
     } catch (error) {
-      console.error('Ağ kontrol hatası:', error);
+      console.error('Network check error:', error);
       return false;
     }
   };
@@ -168,60 +130,61 @@ const CreateToken = () => {
       setUserBalance(parseFloat(balance).toFixed(4));
       return parseFloat(balance);
     } catch (error) {
-      console.error('Bakiye kontrol hatası:', error);
+      console.error('Balance check error:', error);
       return 0;
     }
   };
-
   const switchNetwork = async () => {
     try {
-      await switchToBSCNetwork();
+      await switchToBSCNetwork(true); // true = testnet
       const isBSC = await checkNetwork();
       if (isBSC) {
-        setMessage('✅ BSC ağına başarıyla geçildi');
+        setMessage('✅ Successfully switched to BSC Testnet network');
       }
     } catch (error) {
-      setMessage('❌ Ağ değiştirme hatası: ' + error.message);
+      setMessage('❌ Network switching error: ' + error.message);
     }
   };
 
-  // YENİ: Tier'a göre fee hesapla
+  // NEW: Calculate fee based on tier
+  // Calculate fee - FIXED: 0.0001 BNB (no tier selection)
   const getTierFee = () => {
-    return tierFees[formData.tokenTier] || '0.01';
+    return '0.0001';
   };
 
-  // YENİ: Toplam maliyet hesaplama (fee dahil)
+  // Calculate total cost - LP ALWAYS ENABLED
   const calculateTotalCost = () => {
-    const bnbAmount = formData.addLiquidity ? parseFloat(formData.bnbAmount || 0) : 0;
+    const bnbAmount = parseFloat(formData.bnbAmount || 0);
     const tierFee = parseFloat(getTierFee());
+    const lpFee = 0.001; // LP creation fee
     const gasCost = parseFloat(estimatedGas);
-    return (bnbAmount + tierFee + gasCost).toFixed(4);
+    return (bnbAmount + tierFee + lpFee + gasCost).toFixed(4);
   };
 
-  // Token validasyon fonksiyonları
+  // Token validation functions
   const validateTokenInfo = () => {
     const { name, symbol, initialSupply, decimals } = formData;
 
     if (!name || !symbol || !initialSupply) {
-      return '❌ Lütfen tüm zorunlu alanları doldurun';
+      return '❌ Please fill in all required fields';
     }
 
     if (name.length < 2 || name.length > 30) {
-      return '❌ Token adı 2-30 karakter arasında olmalıdır';
+      return '❌ Token name must be between 2-30 characters';
     }
 
     if (!/^[A-Za-z]{3,10}$/.test(symbol)) {
-      return '❌ Token sembolü 3-10 harf arasında olmalıdır';
+      return '❌ Token symbol must be between 3-10 letters';
     }
 
     const supply = parseFloat(initialSupply);
     if (supply <= 0 || supply > 1000000000000) {
-      return '❌ Geçerli bir toplam arz girin (0-1 trilyon arası)';
+      return '❌ Enter a valid total supply (between 0-1 trillion)';
     }
 
     const decimalNum = parseInt(decimals);
     if (decimalNum < 0 || decimalNum > 18) {
-      return '❌ Ondalık basamak 0-18 arasında olmalıdır';
+      return '❌ Decimal places must be between 0-18';
     }
 
     return null;
@@ -238,12 +201,11 @@ const CreateToken = () => {
   };
 
   const validateLPSettings = () => {
-    if (!formData.addLiquidity) return null;
-
+    // LP ALWAYS REQUIRED - no addLiquidity check
     const { bnbAmount, tokenAmount, marketingTax, liquidityTax, initialSupply } = formData;
     
     if (!bnbAmount || !tokenAmount) {
-      return '❌ LP eklemek için BNB ve Token miktarlarını girin';
+      return '❌ Enter BNB and Token amounts (LP is required)';
     }
 
     const bnb = parseFloat(bnbAmount);
@@ -251,34 +213,34 @@ const CreateToken = () => {
     const totalSupply = parseFloat(initialSupply);
     
     if (bnb <= 0 || tokens <= 0) {
-      return '❌ BNB ve Token miktarları 0\'dan büyük olmalıdır';
+      return '❌ BNB and Token amounts must be greater than 0';
     }
 
     if (tokens > totalSupply) {
-      return `❌ Token miktarı toplam arzdan fazla olamaz! Toplam arz: ${totalSupply.toLocaleString()}, Girdiğiniz: ${tokens.toLocaleString()}`;
+      return `❌ Token amount cannot exceed total supply! Total supply: ${totalSupply.toLocaleString()}, Entered: ${tokens.toLocaleString()}`;
     }
 
     const lpPercentage = (tokens / totalSupply) * 100;
     if (lpPercentage > 90) {
-      return `⚠️ LP'ye çok yüksek miktarda token ekliyorsunuz (${lpPercentage.toFixed(1)}%). En fazla %90 önerilir.`;
+      return `⚠️ You are adding a high amount of tokens to LP (${lpPercentage.toFixed(1)}%). Maximum 90% is recommended.`;
     }
 
     const marketing = parseFloat(marketingTax);
     const liquidity = parseFloat(liquidityTax);
     
     if (marketing + liquidity > 15) {
-      return '❌ Toplam tax oranı %15\'i geçemez';
+      return '❌ Total tax rate cannot exceed 15%';
     }
 
     return null;
   };
 
-  // LP ekleme işlemi - Platform wallet'ten tokenları al
+  // LP addition process - call backend endpoint
   const handleLPConfirm = async (lpData) => {
     setLpTxLoading(true);
-    setLpTxMessage('LP ekleme işlemi başlatılıyor...');
+    setLpTxMessage('🚀 Starting LP addition process...');
     try {
-      // LP ekleme için LiquidityAdder contract ile işlem
+      // Get user wallet address
       const walletType = localStorage.getItem('walletType') || 'metamask';
       const rawProvider = getProviderByWallet(walletType);
       
@@ -286,179 +248,98 @@ const CreateToken = () => {
         throw new Error('Wallet provider not found');
       }
       
-      // Ethers provider ve signer al (v6 uyumlu)
-      const ethersProvider = getEthersProvider(rawProvider);
       const signer = await getSigner(rawProvider);
       const userAddress = await signer.getAddress();
       
       console.log('✅ User address:', userAddress);
-      console.log('✅ Signer provider:', !!signer.provider);
+      console.log('📊 LP Data:', lpData);
+
+      // STEP 1: User approves tokens to LiquidityAdder
+      setLpTxMessage('🔐 Approving tokens for LP addition...');
+      const liquidityAdderAddress = '0xAAA098C78157b242E5f9E3F63aAD778c376E29eb';
       
-      // LiquidityAdder contract address
-      const liquidityAdderAddress = process.env.REACT_APP_LIQUIDITY_ADDER_ADDRESS;
-      if (!liquidityAdderAddress) {
-        setLpTxMessage('❌ Hata: LiquidityAdder kontrat adresi bulunamadı! .env dosyasını kontrol et.');
-        setLpTxLoading(false);
-        return;
-      }
-      
-      // Platform wallet adresini backend'den al
-      let platformWallet;
-      try {
-        const backendUrl = process.env.REACT_APP_BACKEND_URL || `http://${window.location.hostname}:3001`;
-        console.log('🔗 Fetching platform wallet from:', `${backendUrl}/api/config/platform-wallet`);
-        
-        const response = await fetch(`${backendUrl}/api/config/platform-wallet`);
-        
-        if (!response.ok) {
-          throw new Error(`Backend error: ${response.status} ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        console.log('📥 Backend response:', data);
-        
-        platformWallet = data.platformWallet;
-        if (!platformWallet) {
-          throw new Error('Platform wallet not found in response');
-        }
-        console.log('📍 Platform Wallet:', platformWallet);
-      } catch (err) {
-        console.error('❌ Platform wallet fetch error:', err);
-        setLpTxMessage('❌ Platform wallet adresini alamadık: ' + err.message);
-        setLpTxLoading(false);
-        return;
-      }
-      
-      // addLiquidityFrom ABI - platform wallet'ten tokenları çek
-      const liquidityAdderAbi = [
-        'function addLiquidityFrom(address token, address from, uint256 tokenAmount, address recipient) payable returns (uint256)'
+      const tokenABI = [
+        'function approve(address spender, uint256 amount) public returns (bool)',
+        'function allowance(address owner, address spender) public view returns (uint256)',
+        'function decimals() public view returns (uint8)'
       ];
       
-      // Contract with signer (for write operations)
-      const liquidityContract = new ethers.Contract(liquidityAdderAddress, liquidityAdderAbi, signer);
+      const tokenContract = new ethers.Contract(createdTokenAddress, tokenABI, signer);
+      const decimals = await tokenContract.decimals();
+      const totalSupplyForApproval = parseFloat(formData.initialSupply);
+      const totalSupplyInDecimals = ethers.parseUnits(totalSupplyForApproval.toString(), decimals);
       
-      let tokenAmountParsed, bnbAmountParsed;
-      try {
-        tokenAmountParsed = ethers.parseUnits(String(lpData.tokenAmount), 18);
-        bnbAmountParsed = ethers.parseUnits(String(lpData.bnbAmount), 'ether');
-      } catch (parseErr) {
-        console.error('❌ Parse Units Error:', parseErr);
-        setLpTxMessage('❌ Sayı dönüştürme hatası: ' + parseErr.message);
-        setLpTxLoading(false);
-        return;
+      // Check current allowance
+      const currentAllowance = await tokenContract.allowance(userAddress, liquidityAdderAddress);
+      console.log('Current allowance:', ethers.formatUnits(currentAllowance, decimals));
+      
+      if (currentAllowance < totalSupplyInDecimals) {
+        console.log('Approving', totalSupplyForApproval, 'tokens to LiquidityAdder...');
+        const approveTx = await tokenContract.approve(liquidityAdderAddress, ethers.MaxUint256);
+        console.log('✅ Approval tx sent:', approveTx.hash);
+        const approveReceipt = await approveTx.wait();
+        console.log('✅ Approval confirmed:', approveReceipt.hash);
+      } else {
+        console.log('✅ Tokens already approved');
+      }
+
+      // STEP 2: User sends BNB to platform wallet
+      setLpTxMessage('💸 User sending BNB to platform wallet...');
+      const platformWalletAddress = '0x4169B7B19Fb2228a5eaaE84a43e42aFDCE15741C';
+      const bnbInWei = ethers.parseEther(lpData.bnbAmount.toString());
+      
+      const txResponse = await signer.sendTransaction({
+        to: platformWalletAddress,
+        value: bnbInWei
+      });
+      
+      console.log('✅ BNB transfer tx sent:', txResponse.hash);
+      const txReceipt = await txResponse.wait();
+      console.log('✅ BNB transfer confirmed:', txReceipt.hash);
+      
+      // STEP 3: Call backend endpoint to handle LP addition
+      setLpTxMessage('🔄 Sending LP request to backend...');
+      
+      const backendUrl = process.env.REACT_APP_BACKEND_URL || `http://${window.location.hostname}:3001`;
+      const response = await fetch(`${backendUrl}/api/liquidity/add-liquidity`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tokenAddress: createdTokenAddress,
+          userRequestedTokenAmount: parseFloat(lpData.tokenAmount),
+          bnbAmount: parseFloat(lpData.bnbAmount),
+          userWallet: userAddress
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `Backend error: ${response.status}`);
       }
       
-      setLpTxMessage('🔄 Platform wallet izin kontrol ediliyor...');
+      const result = await response.json();
+      console.log('✅ Backend Response:', result);
       
-      // Token kontratından platform wallet'in approval'ını kontrol et
-      const tokenAbi = [
-        'function approve(address spender, uint256 amount) returns (bool)',
-        'function allowance(address owner, address spender) view returns (uint256)'
-      ];
-      
-      // Contract with provider for read operations
-      const tokenContractRead = new ethers.Contract(createdTokenAddress, tokenAbi, ethersProvider);
-      
-      // Platform wallet'in LiquidityAdder'a verdiği izni kontrol et
-      const allowance = await tokenContractRead.allowance(platformWallet, liquidityAdderAddress);
-      console.log('📌 Platform Allowance:', ethers.formatUnits(allowance, 18));
-      
-      if (allowance < tokenAmountParsed) {
-        setLpTxMessage('⚠️ Platform wallet izni yetersiz. Manuel approval gerekli.');
-        console.warn('Platform wallet approval insufficient. Need manual approval.');
+      if (!result.success) {
+        throw new Error(result.message || 'LP addition failed');
       }
       
-      setLpTxMessage('🔄 LP kontratina cagri yapiliyor (platform walletden)...');
+      // Calculate tokens for display
+      const totalSupply = parseFloat(formData.initialSupply);
+      const userTokenAmount = parseFloat(lpData.tokenAmount);
+      const lpTokenAmount = totalSupply - userTokenAmount;
       
-      try {
-        // addLiquidityFrom çağır - platform wallet'ten al, user'a LP token ver
-        console.log('📤 Calling addLiquidityFrom with:', {
-          token: createdTokenAddress,
-          from: platformWallet,
-          tokenAmount: tokenAmountParsed.toString(),
-          recipient: userAddress,
-          bnb: bnbAmountParsed.toString()
-        });
-        
-        const tx = await liquidityContract.addLiquidityFrom(
-          createdTokenAddress,
-          platformWallet,        // from: platform wallet (token sahibi)
-          tokenAmountParsed,     // tokenAmount
-          userAddress,           // recipient: user kendisi (LP token alır)
-          { value: bnbAmountParsed }
-        );
-        
-        console.log('✅ TX sent:', tx.hash);
-        setLpTxMessage(`✅ LP işlemi gönderildi! Hash: ${tx.hash.substring(0, 10)}...`);
-        
-        const receipt = await Promise.race([
-          tx.wait(),
-          new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Transaction timeout - 2 min')), 120000)
-          )
-        ]);
-        
-        console.log('✅ TX confirmed:', receipt);
-        
-        // ✅ LOCK LP TOKENS
-        setLpTxMessage('🔒 LP token\'ları kilitleniyor...');
-        
-        const lockDuration = parseInt(lpData.lpLockTime) || 30; // days
-        const lockDurationSeconds = lockDuration * 24 * 60 * 60;
-        
-        // Get LP token address from Pancake pair
-        // For now, we'll get the LP token balance and lock it
-        const wethAddress = '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c'; // WBNB on testnet
-        const factoryAddress = process.env.REACT_APP_FACTORY_ADDRESS;
-        
-        // Get liquidity token amount - query user's LP balance
-        const pairABI = [
-          'function balanceOf(address account) view returns (uint256)'
-        ];
-        
-        try {
-          // Try to get LP token address from Pancake factory or just use a known pair
-          // For now, estimate LP amount (this is complex in reality)
-          console.log('🔒 LP Lock Duration:', lockDuration, 'days =', lockDurationSeconds, 'seconds');
-          
-          // Call backend to lock liquidity
-          const lockResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'http://192.168.3.111:3001'}/api/liquidity/lock-liquidity`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              tokenAddress: createdTokenAddress,
-              userAddress: userAddress,
-              duration: lockDurationSeconds,
-              lpTokenAmount: receipt.logs.length > 0 ? 'auto' : 'pending'
-            })
-          });
-          
-          if (lockResponse.ok) {
-            const lockData = await lockResponse.json();
-            console.log('✅ LP Locked:', lockData);
-            setLpTxMessage(`✅ LP başarıyla eklendi!\n✅ ${userTokenAmount.toLocaleString()} ${formData.symbol} token'ınız wallet'a gönderildi!\n🔒 LP token'ları ${lockDuration} gün boyunca kilitlendi!`);
-          } else {
-            console.warn('⚠️ Lock request failed, but LP was added');
-            setLpTxMessage(`✅ LP başarıyla eklendi!\n✅ ${userTokenAmount.toLocaleString()} ${formData.symbol} token'ınız wallet'a gönderildi!\n📊 ${lpTokenAmount.toLocaleString()} ${formData.symbol} havuzda kilitlendi.`);
-          }
-        } catch (lockErr) {
-          console.warn('⚠️ Auto-lock failed (non-critical):', lockErr.message);
-          // Don't fail LP addition if lock fails
-          
-          // Calculate distribution
-          const totalSupply = parseFloat(formData.initialSupply);
-          const userTokenAmount = parseFloat(lpData.tokenAmount);
-          const lpTokenAmount = totalSupply - userTokenAmount;
-          
-          setLpTxMessage(`✅ LP başarıyla eklendi!\n✅ ${userTokenAmount.toLocaleString()} ${formData.symbol} token'ınız wallet'a gönderildi!\n📊 ${lpTokenAmount.toLocaleString()} ${formData.symbol} havuzda kilitlendi.`);
-        }
-      } catch (lpErr) {
-        console.error('❌ addLiquidityFrom Error:', lpErr);
-        throw lpErr;
-      }
+      setLpTxMessage(`
+        ✅ LP added successfully!
+        📤 User received: ${userTokenAmount.toLocaleString()} ${formData.symbol}
+        📊 Pool contains: ${lpTokenAmount.toLocaleString()} ${formData.symbol} + ${lpData.bnbAmount} BNB
+        🔗 User TX: ${result.data?.userTransactionHash?.substring(0, 10)}...
+        🔗 Pool TX: ${result.data?.liquidityTransactionHash?.substring(0, 10)}...
+      `);
+      
       setShowLPModal(false);
       setFormData({
-        name: '', symbol: '', initialSupply: '', decimals: '18', metadataURI: '', website: '', telegram: '', twitter: '', description: '', logo: null, addLiquidity: false, bnbAmount: '', tokenAmount: '', lpLockTime: '30', autoBurn: false, marketingTax: '0', liquidityTax: '0', tokenTier: 'standard'
+        name: '', symbol: '', initialSupply: '', decimals: '18', metadataURI: '', website: '', telegram: '', twitter: '', description: '', logo: null, addLiquidity: true, bnbAmount: '', tokenAmount: '', lpLockTime: '30', autoBurn: false, marketingTax: '0', liquidityTax: '0'
       });
       setPreviewImage(null);
       setCurrentStep(1);
@@ -478,13 +359,13 @@ const CreateToken = () => {
       let errorMsg = err.reason || err.message;
       if (err.data?.message) errorMsg = err.data.message;
       
-      setLpTxMessage('❌ LP ekleme hatası: ' + errorMsg);
+      setLpTxMessage('❌ LP addition error: ' + errorMsg);
     } finally {
       setLpTxLoading(false);
     }
   };
 
-  // LP YÜZDESİ HESAPLAMA
+  // LP PERCENTAGE CALCULATION
   const calculateLPPercentage = () => {
     if (!formData.initialSupply || !formData.tokenAmount) return 0;
     const totalSupply = parseFloat(formData.initialSupply);
@@ -525,29 +406,15 @@ const CreateToken = () => {
       const totalSupply = parseFloat(newFormData.initialSupply || 0);
       
       if (tokenAmount > totalSupply && totalSupply > 0) {
-        setMessage(`⚠️ Token miktarı toplam arzı aşıyor! Maksimum: ${totalSupply.toLocaleString()}`);
-      } else if (message && message.includes('Token miktarı toplam arzı aşıyor')) {
+        setMessage(`⚠️ Token amount exceeds total supply! Maximum: ${totalSupply.toLocaleString()}`);
+      } else if (message && message.includes('Token amount exceeds total supply')) {
         setMessage('');
-      }
-    }
-
-    // Tier değiştiğinde LP ayarlarını güncelle
-    if (name === 'tokenTier') {
-      if (value === 'premium') {
-        newFormData.addLiquidity = true;
-        newFormData.lpLockTime = '90';
-        newFormData.autoBurn = true;
-      } else if (value === 'standard') {
-        newFormData.addLiquidity = true;
-        newFormData.lpLockTime = '30';
-      } else {
-        newFormData.addLiquidity = false;
       }
     }
 
     setFormData(newFormData);
 
-    if (name === 'addLiquidity' || name === 'bnbAmount' || name === 'tokenTier') {
+    if (name === 'addLiquidity' || name === 'bnbAmount') {
       estimateGasCost();
     }
   };
@@ -564,12 +431,12 @@ const CreateToken = () => {
     const maxSize = 5 * 1024 * 1024;
     
     if (!validTypes.includes(file.type)) {
-      setMessage('❌ Lütfen JPEG, PNG, GIF veya WebP formatında bir resim seçin');
+      setMessage('❌ Please select an image in JPEG, PNG, GIF or WebP format');
       return;
     }
     
     if (file.size > maxSize) {
-      setMessage('❌ Resim boyutu 5MB\'dan küçük olmalıdır');
+      setMessage('❌ Image size must be smaller than 5MB');
       return;
     }
 
@@ -589,12 +456,12 @@ const CreateToken = () => {
   const uploadImageToIPFS = async (file) => {
     try {
       console.log('📤 Starting logo upload...', file.name);
-      setMessage('📤 Logo yükleniyor...');
+      setMessage('📤 Uploading logo...');
       
       const uploadFormData = new FormData();
       uploadFormData.append('logo', file);
       
-      const backendURL = process.env.REACT_APP_BACKEND_URL || '${getBackendURL()}';
+      const backendURL = process.env.REACT_APP_BACKEND_URL || getBackendURL();
       const uploadURL = `${backendURL}/api/upload/logo`;
       console.log('Upload URL:', uploadURL);
       
@@ -608,7 +475,7 @@ const CreateToken = () => {
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Upload error response:', errorText);
-        throw new Error(`Logo yükleme başarısız: ${response.status}`);
+        throw new Error(`Logo upload failed: ${response.status}`);
       }
       
       const data = await response.json();
@@ -618,7 +485,7 @@ const CreateToken = () => {
         console.log('✅ Logo uploaded successfully:', data.logoURL);
         return data.logoURL;
       } else {
-        throw new Error(data.error || 'Logo yükleme başarısız');
+        throw new Error(data.error || 'Logo upload failed');
       }
       
     } catch (error) {
@@ -643,8 +510,9 @@ const CreateToken = () => {
   };
 
   const estimateGasCost = () => {
-    const baseGas = formData.addLiquidity ? '0.01' : '0.005';
-    if (formData.addLiquidity && formData.bnbAmount) {
+    // LP ALWAYS ENABLED
+    const baseGas = '0.01';
+    if (formData.bnbAmount) {
       const additionalGas = parseFloat(formData.bnbAmount) * 0.001;
       setEstimatedGas((parseFloat(baseGas) + additionalGas).toFixed(4));
     } else {
@@ -653,16 +521,16 @@ const CreateToken = () => {
   };
 
   const checkLPBalance = async () => {
-    if (!formData.addLiquidity) return true;
-
+    // LP ALWAYS REQUIRED
     const bnbAmount = parseFloat(formData.bnbAmount);
     const userBNBBalance = await checkUserBalance();
     const tierFee = parseFloat(getTierFee());
+    const lpFee = 0.001;
     
-    const totalCost = bnbAmount + parseFloat(estimatedGas) + tierFee;
+    const totalCost = bnbAmount + parseFloat(estimatedGas) + tierFee + lpFee;
     
     if (userBNBBalance < totalCost) {
-      setMessage(`❌ Yetersiz BNB bakiyesi. Gerekli: ${totalCost.toFixed(4)} BNB, Mevcut: ${userBNBBalance.toFixed(4)} BNB`);
+      setMessage(`❌ Insufficient BNB balance. Required: ${totalCost.toFixed(4)} BNB, Available: ${userBNBBalance.toFixed(4)} BNB`);
       return false;
     }
     
@@ -676,14 +544,14 @@ const CreateToken = () => {
 
     try {
       if (!isCorrectNetwork) {
-        setMessage('❌ Lütfen BSC Mainnet ağına geçiş yapın');
+        setMessage('❌ Please switch to BSC Mainnet network');
         setLoading(false);
         return;
       }
 
       const address = await getCurrentAccount();
       if (!address) {
-        setMessage('❌ Lütfen önce cüzdanınızı bağlayın!');
+        setMessage('❌ Please connect your wallet first!');
         setLoading(false);
         return;
       }
@@ -695,10 +563,18 @@ const CreateToken = () => {
         return;
       }
 
+      // LP is REQUIRED - validate
+      const lpValidationError = validateLPSettings();
+      if (lpValidationError) {
+        setMessage(lpValidationError);
+        setLoading(false);
+        return;
+      }
+
       if ((formData.website && !validateURL(formData.website)) ||
           (formData.telegram && !validateURL(formData.telegram)) ||
           (formData.twitter && !validateURL(formData.twitter))) {
-        setMessage('❌ Lütfen geçerli URL formatı kullanın');
+        setMessage('❌ Please use valid URL format');
         setLoading(false);
         return;
       }
@@ -712,39 +588,45 @@ const CreateToken = () => {
           logoURL = await uploadImageToIPFS(formData.logo);
           console.log('Logo uploaded to IPFS:', logoURL);
         } catch (uploadError) {
-          setMessage('❌ Logo yükleme başarısız: ' + uploadError.message);
+          setMessage('❌ Logo upload failed: ' + uploadError.message);
           setLoading(false);
           return;
         }
       }
 
-      setMessage('📝 Token kontratı hazırlanıyor...');
+      setMessage('📝 Preparing token contract...');
       
       // Store wallet address in localStorage so API interceptor can find it
       localStorage.setItem('walletAddress', address);
       
-      // Debug: Data kontrolü
+      // ALWAYS use createTokenWithLP (LP is now required)
+      const endpoint = 'createTokenWithLP';
+      
       const tokenData = {
         ...formData,
         userAddress: address,
         initialSupply: formData.initialSupply.toString(),
         logoURL: logoURL,
-        tier: formData.tokenTier,
-        creationFee: getTierFee()
+        tier: 'standard',  // FIXED: default tier (no selection)
+        creationFee: getTierFee(),
+        // LP ALWAYS required
+        lpTokenAmount: parseFloat(formData.tokenAmount),
+        lpBnbAmount: parseFloat(formData.bnbAmount),
+        customMarketingTax: parseFloat(formData.marketingTax) || 0,
+        customLiquidityTax: parseFloat(formData.liquidityTax) || 0,
+        customAutoBurn: formData.autoBurn
       };
       
-      console.log('🔍 DEBUG - Sending to backend:', tokenData);
-      console.log('🔍 initialSupply:', formData.initialSupply);
-      console.log('🔍 name:', formData.name);
-      console.log('🔍 symbol:', formData.symbol);
-      console.log('🔍 userAddress:', address);
+      console.log('🔍 DEBUG - Using endpoint:', endpoint);
+      console.log('🔍 DEBUG - Sending data:', tokenData);
       
-      const response = await tokenAPI.createToken(tokenData);
+      // Call createTokenWithLP endpoint
+      const response = await tokenAPI.createTokenWithLP(tokenData);
 
       console.log('Backend response:', response.data);
 
       if (response.data.success && response.data.transaction) {
-        setMessage('🔄 Wallet işlemi hazırlanıyor...');
+        setMessage('🔄 Preparing wallet transaction...');
         
         try {
           // Get the active wallet provider
@@ -758,22 +640,127 @@ const CreateToken = () => {
           const signer = await getSigner(provider);
           
           console.log('Signer address:', await signer.getAddress());
-          
-          // Fee değerini ekle
-          const tx = await signer.sendTransaction({
-            ...response.data.transaction,
-            value: response.data.transaction.value || ethers.parseEther(getTierFee())
+          console.log('📝 Response from backend:', {
+            transaction: response.data.transaction,
+            fees: response.data.fees
           });
           
-          setMessage(`✅ İşlem gönderildi! Onay bekleniyor... Hash: ${tx.hash.substring(0, 10)}...`);
+          // Add fee value from transaction data
+          // The value is in wei format from backend, ethers.js v6 handles both string wei and bigint
+          const txToSend = {
+            ...response.data.transaction,
+            value: response.data.transaction.value || response.data.fees?.totalValue
+          };
           
-          const receipt = await tx.wait();
-          console.log('✅ İşlem onaylandı!', receipt);
+          // CRITICAL: Verify data field is present and not empty
+          console.log('🔍 DATA FIELD VERIFICATION:');
+          console.log('  data present:', !!txToSend.data);
+          console.log('  data value:', txToSend.data);
+          console.log('  data length:', txToSend.data ? txToSend.data.length : 'MISSING');
+          console.log('  data starts with 0x:', txToSend.data ? txToSend.data.startsWith('0x') : false);
           
-          setMessage('✅ İşlem onaylandı! Token kaydediliyor...');
+          if (!txToSend.data || txToSend.data === '0x' || txToSend.data.length < 10) {
+            throw new Error('❌ CRITICAL: Function data is empty! Transaction would fail. Data field: ' + JSON.stringify(txToSend.data));
+          }
+          
+          console.log('📤 Transaction to send to MetaMask (before formatting):', txToSend);
+          
+          // CRITICAL FIX: Ensure all transaction fields are properly formatted for ethers v6
+          // The issue was that value as string wasn't being properly included in the serialized tx
+          const formattedTx = {
+            to: txToSend.to,
+            from: txToSend.from,
+            data: txToSend.data,
+            value: txToSend.value ? BigInt(txToSend.value) : 0n,
+            gasLimit: txToSend.gasLimit ? BigInt(txToSend.gasLimit) : 5000000n
+          };
+          
+          console.log('📤 Transaction AFTER formatting:', formattedTx);
+          console.log('  to:', formattedTx.to);
+          console.log('  from:', formattedTx.from);
+          console.log('  data length:', formattedTx.data.length);
+          console.log('  data preview:', formattedTx.data.substring(0, 50));
+          console.log('  value:', formattedTx.value.toString());
+          console.log('  gasLimit:', formattedTx.gasLimit.toString());
+          
+          // DEBUG: Log transaction being sent to MetaMask
+          console.log('📨 SENDING TO METAMASK:', JSON.stringify({
+            to: formattedTx.to,
+            from: formattedTx.from,
+            data: formattedTx.data,
+            value: formattedTx.value.toString(),
+            gasLimit: formattedTx.gasLimit.toString()
+          }, null, 2));
+          
+          // Use populateTransaction to ensure proper serialization
+          const populatedTx = await signer.populateTransaction(formattedTx);
+          console.log('✅ Populated transaction:', populatedTx);
+          console.log('  populated data:', populatedTx.data);
+          console.log('  populated value:', populatedTx.value?.toString());
+          
+          // CRITICAL FIX: Don't use signer.sendTransaction() - it strips data!
+          // Instead, send directly through MetaMask provider with manual hex serialization
+          console.log('🔧 CRITICAL FIX: Sending transaction through MetaMask provider...');
+          
+          // Get the raw MetaMask provider
+          const rawProvider = window.ethereum;
+          if (!rawProvider) {
+            throw new Error('MetaMask provider not available');
+          }
+          
+          // Manually serialize transaction to prevent MetaMask from stripping data
+          // ⚠️ IMPORTANT: Don't include gasPrice - let MetaMask handle EIP-1559 gas parameters
+          const txForMetaMask = {
+            to: populatedTx.to,
+            from: populatedTx.from,
+            value: populatedTx.value ? '0x' + populatedTx.value.toString(16) : '0x0',
+            data: populatedTx.data,
+            gas: populatedTx.gasLimit ? '0x' + populatedTx.gasLimit.toString(16) : '0x4C4B40'
+            // ❌ REMOVED: gasPrice - causes "both gasPrice and (maxFeePerGas or maxPriorityFeePerGas) specified" error
+            // MetaMask will automatically set maxFeePerGas and maxPriorityFeePerGas
+          };
+          
+          console.log('📨 FINAL TX TO METAMASK:', JSON.stringify(txForMetaMask, null, 2));
+          
+          // Send through MetaMask's JSON-RPC (bypasses ethers v6 serialization issues)
+          const txHash = await rawProvider.request({
+            method: 'eth_sendTransaction',
+            params: [txForMetaMask]
+          });
+          console.log('✅ Transaction hash from MetaMask:', txHash);
+          
+          setMessage(`✅ Transaction sent! Waiting for confirmation... Hash: ${txHash.substring(0, 10)}...`);
+          
+          // Create a transaction response object to track confirmation
+          const ethersProvider = new ethers.BrowserProvider(rawProvider);
+          const txResponse = {
+            hash: txHash,
+            wait: async () => {
+              let receipt = null;
+              let attempts = 0;
+              while (!receipt && attempts < 60) {
+                receipt = await ethersProvider.getTransactionReceipt(txHash);
+                if (!receipt) {
+                  await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                attempts++;
+              }
+              return receipt;
+            }
+          };
+          
+          // Wait for confirmation
+          const receipt = await txResponse.wait();
+          console.log('✅ Transaction receipt:', receipt);
+          
+          setMessage(`✅ Transaction sent! Waiting for confirmation... Hash: ${txHash.substring(0, 10)}...`);
+          
+          console.log('✅ Transaction confirmed!', receipt);
+          
+          setMessage('✅ Transaction confirmed! Saving token...');
           
           const confirmResponse = await tokenAPI.confirmTokenCreation({
-            txHash: tx.hash,
+            txHash: txHash,
             name: formData.name,
             symbol: formData.symbol,
             initialSupply: formData.initialSupply.toString(),
@@ -788,34 +775,24 @@ const CreateToken = () => {
             creationFee: getTierFee(),
             liquidityAdded: formData.addLiquidity,
             liquidityInfo: formData.addLiquidity ? {
-              userTokenAmount: formData.tokenAmount,        // ← User'a gidicek
-              lpTokenAmount: formData.initialSupply - formData.tokenAmount,  // ← Havuza gidicek
-              bnbAmount: formData.bnbAmount,
-              lpLockTime: formData.lpLockTime
+              tokenAmount: parseFloat(formData.tokenAmount),
+              bnbAmount: parseFloat(formData.bnbAmount),
+              lpLockTime: formData.lpLockTime,
+              customMarketingTax: parseFloat(formData.marketingTax) || 0,
+              customLiquidityTax: parseFloat(formData.liquidityTax) || 0,
+              customAutoBurn: formData.autoBurn
             } : null
           });
 
           if (confirmResponse.data.success) {
             setMessage('🎉 ' + confirmResponse.data.message);
-            console.log('✅ Token başarıyla oluşturuldu. Tier:', formData.tokenTier);
-            console.log('📦 Backend response:', confirmResponse.data);
-            // LP modal'ı Standard ve Premium paketlerde aç
-            if (formData.tokenTier !== 'basic') {
-              const tokenAddress = confirmResponse.data.tokenAddress;
-              console.log('🔍 tokenAddress:', tokenAddress);
-              if (tokenAddress) {
-                console.log('✅ LP Modal açılıyor...');
-                setCreatedTokenAddress(tokenAddress);
-                setShowLPModal(true);
-                setLoading(false);
-                return;
-              } else {
-                console.log('❌ tokenAddress boş! Backend response:', confirmResponse.data);
-              }
+            console.log('✅ Token created successfully!');
+            if (formData.addLiquidity) {
+              setMessage('🎉 Token created with LP in single transaction!');
             }
-            // LP yoksa direkt yönlendir
+            // Reset form
             setFormData({
-              name: '', symbol: '', initialSupply: '', decimals: '18', metadataURI: '', website: '', telegram: '', twitter: '', description: '', logo: null, addLiquidity: false, bnbAmount: '', tokenAmount: '', lpLockTime: '30', autoBurn: false, marketingTax: '0', liquidityTax: '0', tokenTier: 'standard'
+              name: '', symbol: '', initialSupply: '', decimals: '18', metadataURI: '', website: '', telegram: '', twitter: '', description: '', logo: null, addLiquidity: true, bnbAmount: '', tokenAmount: '', lpLockTime: '30', autoBurn: false, marketingTax: '0', liquidityTax: '0'
             });
             setPreviewImage(null);
             setCurrentStep(1);
@@ -823,20 +800,20 @@ const CreateToken = () => {
               window.location.href = '/tokens';
             }, 3000);
           } else {
-            setMessage('❌ Token kaydetme başarısız: ' + (confirmResponse.data.message || confirmResponse.data.error));
+            setMessage('❌ Token save failed: ' + (confirmResponse.data.message || confirmResponse.data.error));
           }
           
         } catch (txError) {
           console.error('Transaction error:', txError);
           if (txError.code === 'ACTION_REJECTED') {
-            setMessage('❌ İşlem kullanıcı tarafından reddedildi');
+            setMessage('❌ Transaction rejected by user');
           } else {
-            setMessage('❌ İşlem başarısız: ' + (txError.reason || txError.message));
+            setMessage('❌ Transaction failed: ' + (txError.reason || txError.message));
           }
         }
 
       } else {
-        setMessage('❌ ' + (response.data.message || response.data.error || 'Token oluşturma başarısız'));
+        setMessage('❌ ' + (response.data.message || response.data.error || 'Token creation failed'));
       }
 
     } catch (error) {
@@ -844,7 +821,7 @@ const CreateToken = () => {
       console.error('Error response:', error.response?.data);
       console.error('Error status:', error.response?.status);
       console.error('Error message:', error.message);
-      setMessage('❌ Hata: ' + (error.response?.data?.error || error.response?.data?.message || error.message));
+      setMessage('❌ Error: ' + (error.response?.data?.error || error.response?.data?.message || error.message));
     } finally {
       setLoading(false);
     }
@@ -908,10 +885,10 @@ const CreateToken = () => {
           <div className="step-content">
             <div className="section-header">
               <FaCamera size={28} />
-              <h3>Token Logosu</h3>
+              <h3>Token Logo</h3>
             </div>
             <p className="helper-text">
-              Tokenınız için bir profil resmi seçin (JPEG, PNG, GIF, WebP - max 5MB)
+              Select a profile image for your token (JPEG, PNG, GIF, WebP - max 5MB)
             </p>
             
             <div className="logo-section">
@@ -926,8 +903,8 @@ const CreateToken = () => {
                 ) : (
                   <div className="logo-placeholder">
                     <FaCamera size={32} />
-                    <span>Logo Yükle</span>
-                    <span className="size-hint">120x120 px önerilir</span>
+                    <span>Upload Logo</span>
+                    <span className="size-hint">120x120 px recommended</span>
                   </div>
                 )}
               </div>
@@ -940,29 +917,29 @@ const CreateToken = () => {
                     style={{ display: 'none' }}
                   />
                   <FaCamera size={20} />
-                  Logo Seç
+                  Select Logo
                 </label>
                 {previewImage && (
-                  <p className="image-selected">✓ Logo seçildi</p>
+                  <p className="image-selected">✓ Logo selected</p>
                 )}
               </div>
             </div>
 
             <div className="section-header" style={{ marginTop: '2rem' }}>
               <FaRocket size={28} />
-              <h3>Token Bilgileri</h3>
+              <h3>Token Information</h3>
             </div>
             
             <div className="form-grid">
               <div className="form-group">
                 <label>
-                  Token Adı *
+                  Token Name *
                   <input
                     type="text"
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    placeholder="Örn: DogeCoin"
+                    placeholder="Ex: DogeCoin"
                     required
                     minLength="2"
                     maxLength="30"
@@ -972,29 +949,29 @@ const CreateToken = () => {
 
               <div className="form-group">
                 <label>
-                  Token Sembolü *
+                  Token Symbol *
                   <input
                     type="text"
                     name="symbol"
                     value={formData.symbol}
                     onChange={handleInputChange}
-                    placeholder="Örn: DOGE"
+                    placeholder="Ex: DOGE"
                     required
                     pattern="[A-Za-z]{3,10}"
-                    title="3-10 harf arasında olmalıdır"
+                    title="Must be between 3-10 letters"
                   />
                 </label>
               </div>
 
               <div className="form-group">
                 <label>
-                  Toplam Arz *
+                  Total Supply *
                   <input
                     type="number"
                     name="initialSupply"
                     value={formData.initialSupply}
                     onChange={handleInputChange}
-                    placeholder="Örn: 1000000"
+                    placeholder="Ex: 1000000"
                     required
                     min="1"
                     max="1000000000000"
@@ -1005,7 +982,7 @@ const CreateToken = () => {
 
               <div className="form-group">
                 <label>
-                  Ondalık Basamak
+                  Decimal Places
                   <input
                     type="number"
                     name="decimals"
@@ -1025,117 +1002,222 @@ const CreateToken = () => {
         return (
           <div className="step-content">
             <div className="section-header">
-              <FaCoins size={28} />
-              <h3>Paket Seçimi</h3>
+              <FaBolt size={28} />
+              <h3>Liquidity Pool Setup</h3>
             </div>
             <p className="helper-text">
-              İhtiyaçlarınıza uygun bir paket seçin. Premium paketlerde ek özellikler bulunur.
+              Set up liquidity pool configuration. Token + LP creation happens in ONE atomic transaction!
             </p>
 
-            <div className="tier-selection">
-              <div className="tier-cards">
-                {/* BASIC TIER */}
-                <div 
-                  className={`tier-card ${formData.tokenTier === 'basic' ? 'selected' : ''}`}
-                  onClick={() => handleInputChange({ target: { name: 'tokenTier', value: 'basic' } })}
-                >
-                  <div className="tier-header">
-                    <h4>Basic</h4>
-                    <div className="tier-price">{tierFees.basic} BNB</div>
-                  </div>
-                  <div className="tier-features">
-                    <div className="feature">✓ Temel Token Oluşturma</div>
-                    <div className="feature">✓ 18 Decimal</div>
-                    <div className="feature">✓ IPFS Metadata</div>
-                    <div className="feature">✗ Liquidity Pool</div>
-                    <div className="feature">✗ Advanced Features</div>
-                  </div>
-                  <div className="tier-badge">En Ekonomik</div>
-                </div>
-
-                {/* STANDARD TIER */}
-                <div 
-                  className={`tier-card ${formData.tokenTier === 'standard' ? 'selected' : ''}`}
-                  onClick={() => handleInputChange({ target: { name: 'tokenTier', value: 'standard' } })}
-                >
-                  <div className="tier-header">
-                    <h4>Standard</h4>
-                    <div className="tier-price">{tierFees.standard} BNB</div>
-                  </div>
-                  <div className="tier-features">
-                    <div className="feature">✓ Temel Token Oluşturma</div>
-                    <div className="feature">✓ Liquidity Pool</div>
-                    <div className="feature">✓ 30 Gün LP Lock</div>
-                    <div className="feature">✓ Tax Ayarları</div>
-                    <div className="feature">✗ Auto-Burn</div>
-                  </div>
-                  <div className="tier-badge popular">En Popüler</div>
-                </div>
-
-                {/* PREMIUM TIER */}
-                <div 
-                  className={`tier-card ${formData.tokenTier === 'premium' ? 'selected' : ''}`}
-                  onClick={() => handleInputChange({ target: { name: 'tokenTier', value: 'premium' } })}
-                >
-                  <div className="tier-header">
-                    <h4>Premium</h4>
-                    <div className="tier-price">{tierFees.premium} BNB</div>
-                  </div>
-                  <div className="tier-features">
-                    <div className="feature">✓ Tüm Standart Özellikler</div>
-                    <div className="feature">✓ 90 Gün LP Lock</div>
-                    <div className="feature">✓ Auto-Burn Özelliği</div>
-                    <div className="feature">✓ Premium Destek</div>
-                    <div className="feature">✓ Öncelikli Listeleme</div>
-                  </div>
-                  <div className="tier-badge premium">Premium</div>
-                </div>
+            {/* Benefits */}
+            <div style={{
+              background: 'rgba(59, 130, 246, 0.1)',
+              border: '2px solid #3B82F6',
+              borderRadius: '12px',
+              padding: '1.5rem',
+              marginBottom: '2rem'
+            }}>
+              <h4 style={{ color: '#3B82F6', marginBottom: '1rem' }}>✨ Benefits:</h4>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', color: '#CBD5E1', fontSize: '0.95rem' }}>
+                <div>✓ Single transaction (token + LP together)</div>
+                <div>✓ Lower fees (no double gas cost)</div>
+                <div>✓ Atomic execution (all or nothing)</div>
+                <div>✓ Instant LP token distribution</div>
               </div>
             </div>
 
-            {/* Fee Dağılım Bilgisi */}
-            <div className="fee-distribution">
-              <div className="section-header">
-                <FaUsers size={24} />
-                <h4>Fee Dağılımı</h4>
+            {/* LP Configuration (always enabled - no toggle) */}
+            <div style={{
+              background: 'rgba(16, 185, 129, 0.05)',
+              border: '1px solid #10B981',
+              borderRadius: '12px',
+              padding: '2rem'
+            }}>
+              <div className="form-grid">
+                  {/* Token Amount for LP */}
+                  <div className="form-group">
+                    <label>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>Tokens for LP *</span>
+                        <span style={{ fontSize: '0.85rem', color: '#94A3B8' }}>
+                          Max: {formData.initialSupply}
+                        </span>
+                      </div>
+                      <input
+                        type="number"
+                        name="tokenAmount"
+                        value={formData.tokenAmount}
+                        onChange={handleInputChange}
+                        placeholder="Ex: 500000"
+                        required
+                        min="1"
+                        max={formData.initialSupply}
+                        step="1"
+                      />
+                    </label>
+                    <p style={{ color: '#94A3B8', fontSize: '0.85rem', marginTop: '0.5rem' }}>
+                      Remaining for you: {Math.max(0, formData.initialSupply - (parseFloat(formData.tokenAmount) || 0))} tokens
+                    </p>
+                  </div>
+
+                  {/* BNB Amount for LP */}
+                  <div className="form-group">
+                    <label>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span>BNB for LP *</span>
+                        <span style={{ fontSize: '0.85rem', color: '#94A3B8' }}>
+                          Available: {userBalance} BNB
+                        </span>
+                      </div>
+                      <input
+                        type="number"
+                        name="bnbAmount"
+                        value={formData.bnbAmount}
+                        onChange={handleInputChange}
+                        placeholder="Ex: 1.5"
+                        required
+                        min="0.01"
+                        step="0.01"
+                        max={userBalance}
+                      />
+                    </label>
+                    <p style={{ color: '#94A3B8', fontSize: '0.85rem', marginTop: '0.5rem' }}>
+                      Recommended: 0.5 - 2 BNB for good liquidity
+                    </p>
+                  </div>
+
+                  {/* Lock Time */}
+                  <div className="form-group">
+                    <label>
+                      LP Lock Duration
+                      <select
+                        name="lpLockTime"
+                        value={formData.lpLockTime}
+                        onChange={handleInputChange}
+                      >
+                        <option value="30">30 Days (Standard)</option>
+                        <option value="60">60 Days</option>
+                        <option value="90">90 Days (Premium)</option>
+                        <option value="180">180 Days</option>
+                        <option value="365">1 Year</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  {/* Auto Burn */}
+                  <div className="form-group">
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <input
+                        type="checkbox"
+                        name="autoBurn"
+                        checked={formData.autoBurn}
+                        onChange={handleInputChange}
+                        style={{ width: '18px', height: '18px' }}
+                      />
+                      <span>Enable Auto-Burn</span>
+                    </label>
+                    <p style={{ color: '#94A3B8', fontSize: '0.85rem', marginTop: '0.5rem' }}>
+                      Automatically burn remaining tokens after LP setup
+                    </p>
+                  </div>
+
+                  {/* Marketing Tax */}
+                  <div className="form-group">
+                    <label>
+                      Marketing Tax (%)
+                      <input
+                        type="number"
+                        name="marketingTax"
+                        value={formData.marketingTax}
+                        onChange={handleInputChange}
+                        placeholder="0-5"
+                        min="0"
+                        max="5"
+                        step="0.1"
+                      />
+                    </label>
+                  </div>
+
+                  {/* Liquidity Tax */}
+                  <div className="form-group">
+                    <label>
+                      Liquidity Tax (%)
+                      <input
+                        type="number"
+                        name="liquidityTax"
+                        value={formData.liquidityTax}
+                        onChange={handleInputChange}
+                        placeholder="0-5"
+                        min="0"
+                        max="5"
+                        step="0.1"
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                {/* LP Summary */}
+                <div style={{
+                  marginTop: '2rem',
+                  padding: '1.5rem',
+                  background: 'rgba(51, 65, 85, 0.5)',
+                  borderRadius: '12px',
+                  borderLeft: '4px solid #10B981'
+                }}>
+                  <h4 style={{ color: '#10B981', marginBottom: '1rem' }}>LP Summary:</h4>
+                  <div style={{ display: 'grid', gap: '0.75rem', color: '#CBD5E1', fontSize: '0.95rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Tokens for LP:</span>
+                      <span style={{ color: '#10B981', fontWeight: 'bold' }}>
+                        {formData.tokenAmount || '0'} tokens
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>BNB for LP:</span>
+                      <span style={{ color: '#10B981', fontWeight: 'bold' }}>
+                        {formData.bnbAmount || '0'} BNB
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Your Tokens After LP:</span>
+                      <span style={{ color: '#3B82F6', fontWeight: 'bold' }}>
+                        {Math.max(0, formData.initialSupply - (parseFloat(formData.tokenAmount) || 0))} tokens
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '1rem', borderTop: '1px solid rgba(148, 163, 184, 0.2)' }}>
+                      <span>LP Lock Duration:</span>
+                      <span style={{ color: '#10B981', fontWeight: 'bold' }}>
+                        {formData.lpLockTime} days
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="distribution-bars">
-                <div className="distribution-item">
-                  <div className="distribution-label">
-                    <span>Platform ({feeDistribution.platform})</span>
-                    <span>{(parseFloat(getTierFee()) * 0.7).toFixed(3)} BNB</span>
-                  </div>
-                  <div className="distribution-bar">
-                    <div 
-                      className="distribution-fill platform" 
-                      style={{width: feeDistribution.platform}}
-                    ></div>
-                  </div>
-                </div>
-                <div className="distribution-item">
-                  <div className="distribution-label">
-                    <span>Geliştirme ({feeDistribution.development})</span>
-                    <span>{(parseFloat(getTierFee()) * 0.2).toFixed(3)} BNB</span>
-                  </div>
-                  <div className="distribution-bar">
-                    <div 
-                      className="distribution-fill development" 
-                      style={{width: feeDistribution.development}}
-                    ></div>
-                  </div>
-                </div>
-                <div className="distribution-item">
-                  <div className="distribution-label">
-                    <span>Marketing ({feeDistribution.marketing})</span>
-                    <span>{(parseFloat(getTierFee()) * 0.1).toFixed(3)} BNB</span>
-                  </div>
-                  <div className="distribution-bar">
-                    <div 
-                      className="distribution-fill marketing" 
-                      style={{width: feeDistribution.marketing}}
-                    ></div>
-                  </div>
-                </div>
+
+            {/* Fee Summary */}
+            <div className="balance-info" style={{ marginTop: '2rem' }}>
+              <div className="balance-row">
+                <span>Token Creation Fee:</span>
+                <span className="balance-value">{getTierFee()} BNB</span>
+              </div>
+              <div className="balance-row">
+                <span>LP Creation Fee:</span>
+                <span className="balance-value">0.001 BNB</span>
+              </div>
+              <div className="balance-row">
+                <span>BNB for Liquidity:</span>
+                <span className="balance-value">{formData.bnbAmount || '0'} BNB</span>
+              </div>
+              <div className="balance-row total">
+                <span>Total Cost:</span>
+                <span className="balance-value total-cost">
+                  {(
+                    parseFloat(getTierFee()) + 
+                    0.001 + 
+                    parseFloat(formData.bnbAmount || 0) +
+                    0.005
+                  ).toFixed(4)} BNB
+                </span>
               </div>
             </div>
           </div>
@@ -1145,91 +1227,11 @@ const CreateToken = () => {
         return (
           <div className="step-content">
             <div className="section-header">
-              <FaBolt size={28} />
-              <h3>Hazırlıklar Tamamlandı</h3>
-            </div>
-            
-            <div style={{
-              background: 'rgba(16, 185, 129, 0.1)',
-              border: '2px solid #10B981',
-              borderRadius: '16px',
-              padding: '2rem',
-              textAlign: 'center',
-              marginBottom: '2rem'
-            }}>
-              <FaCheckCircle size={48} style={{ color: '#10B981', marginBottom: '1rem' }} />
-              <h4 style={{ color: '#10B981', marginBottom: '1rem' }}>
-                {formData.tokenTier === 'basic' 
-                  ? 'Basic Paket Seçildi' 
-                  : 'Liquidity Pool Seçeneği Mevcut'}
-              </h4>
-              
-              {formData.tokenTier === 'basic' ? (
-                <p style={{ color: '#CBD5E1', lineHeight: '1.6' }}>
-                  Basic paketiniz token oluşturma için hazır. Sonraki adımlardan geçerek token oluşturma işlemini tamamlayabilirsiniz.
-                  <br /><br />
-                  <strong>Not:</strong> LP eklemek isterseniz daha sonra Token detay sayfasından ekleyebilirsiniz.
-                </p>
-              ) : (
-                <p style={{ color: '#CBD5E1', lineHeight: '1.6' }}>
-                  Seçtiğiniz paket liquidity pool özelliğini desteklemektedir.
-                  <br /><br />
-                  Token oluşturulduktan sonra, bir modal penceresi açılacak ve LP miktarlarını belirtip onay verebileceksiniz.
-                  <br />
-                  Token adresinizi cüzdanından doğrudan işlem başlatacaksınız.
-                </p>
-              )}
-            </div>
-
-            <div className="balance-info">
-              <div className="balance-row">
-                <span>Seçilen Paket:</span>
-                <span className="balance-value">{formData.tokenTier?.toUpperCase() || 'STANDARD'}</span>
-              </div>
-              <div className="balance-row">
-                <span>Paket Ücreti:</span>
-                <span className="balance-value">{getTierFee()} BNB</span>
-              </div>
-              <div className="balance-row">
-                <span>Mevcut BNB Bakiyeniz:</span>
-                <span className="balance-value">{userBalance} BNB</span>
-              </div>
-              <div className="balance-row total">
-                <span>Tahmini Toplam Maliyet:</span>
-                <span className="balance-value total-cost">~{(parseFloat(getTierFee()) + 0.005).toFixed(4)} BNB</span>
-              </div>
-              <div className="balance-actions">
-                <button 
-                  type="button" 
-                  onClick={checkUserBalance}
-                  className="balance-check-btn"
-                >
-                  <FaWallet size={16} />
-                  Bakiyeyi Güncelle
-                </button>
-                {!isCorrectNetwork && (
-                  <button 
-                    type="button" 
-                    onClick={switchNetwork}
-                    className="network-switch-btn"
-                  >
-                    BSC Ağına Geç
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        );
-
-      case 4:
-        return (
-          <div className="step-content">
-            <div className="section-header">
               <FaGlobe size={28} />
-              <h3>Sosyal Medya Bağlantıları</h3>
+              <h3>Social Media Links</h3>
             </div>
             <p className="helper-text">
-              Tokenınızın topluluğunu büyütmek için sosyal medya bağlantılarını ekleyin (Opsiyonel)
+              Add social media links to grow your token's community (Optional)
             </p>
             
             <div className="social-grid">
@@ -1281,35 +1283,35 @@ const CreateToken = () => {
 
             <div className="section-header" style={{ marginTop: '2rem' }}>
               <FaFileAlt size={28} />
-              <h3>Token Açıklaması</h3>
+              <h3>Token Description</h3>
             </div>
             
             <div className="form-group">
-              <label>Açıklama</label>
+              <label>Description</label>
               <textarea
                 name="description"
                 value={formData.description}
                 onChange={handleInputChange}
-                placeholder="Tokenınızın amacını, özelliklerini, kullanım alanlarını ve topluluğunuzu açıklayın..."
+                placeholder="Explain the purpose, features, use cases and community of your token..."
                 rows="8"
                 maxLength="1000"
               />
               <div className="char-count">
-                {formData.description.length}/1000 karakter
+                {formData.description.length}/1000 characters
               </div>
             </div>
           </div>
         );
 
-      case 5:
+      case 4:
         return (
           <div className="step-content">
             <div className="section-header">
               <FaEye size={28} />
-              <h3>Token Önizleme</h3>
+              <h3>Token Preview</h3>
             </div>
             <p className="helper-text">
-              Token bilgilerinizi kontrol edin. Onayladıktan sonra işlem başlatılacaktır.
+              Review your token information. The process will start after confirmation.
             </p>
             
             <div className="preview-card">
@@ -1322,36 +1324,26 @@ const CreateToken = () => {
                   </div>
                 )}
                 <div className="preview-title">
-                  <h4>{formData.name || 'Token Adı'}</h4>
+                  <h4>{formData.name || 'Token Name'}</h4>
                   <span className="preview-symbol">{formData.symbol || 'SYMBOL'}</span>
-                  <div className="preview-tier">{formData.tokenTier?.toUpperCase() || 'STANDARD'} PAKET</div>
+                  <div className="preview-tier">STANDARD TIER</div>
                 </div>
               </div>
               
               <div className="preview-details">
                 <div className="preview-row">
-                  <span>Toplam Arz:</span>
+                  <span>Total Supply:</span>
                   <span className="preview-value">
                     {formData.initialSupply ? Number(formData.initialSupply).toLocaleString() : '0'} {formData.symbol || ''}
                   </span>
                 </div>
                 <div className="preview-row">
-                  <span>Ondalık:</span>
+                  <span>Decimals:</span>
                   <span className="preview-value">{formData.decimals}</span>
                 </div>
                 
-                <div className="preview-section-divider">Paket Bilgileri</div>
-                <div className="preview-row">
-                  <span>Seçilen Paket:</span>
-                  <span className="preview-value">{formData.tokenTier?.toUpperCase()}</span>
-                </div>
-                <div className="preview-row">
-                  <span>Paket Ücreti:</span>
-                  <span className="preview-value">{getTierFee()} BNB</span>
-                </div>
-                
                 {(formData.website || formData.telegram || formData.twitter) && (
-                  <div className="preview-section-divider">Sosyal Medya</div>
+                  <div className="preview-section-divider">Social Media</div>
                 )}
                 {formData.website && (
                   <div className="preview-row">
@@ -1373,25 +1365,33 @@ const CreateToken = () => {
                 )}
                 {formData.description && (
                   <>
-                    <div className="preview-section-divider">Açıklama</div>
+                    <div className="preview-section-divider">Description</div>
                     <div className="preview-description">
                       <p>{formData.description}</p>
                     </div>
                   </>
                 )}
 
-                <div className="preview-section-divider">Maliyet Detayı</div>
+                <div className="preview-section-divider">Cost Details</div>
                 <div className="preview-row">
-                  <span>Paket Ücreti:</span>
-                  <span className="preview-value">{getTierFee()} BNB</span>
+                  <span>Creation Fee:</span>
+                  <span className="preview-value">0.0001 BNB</span>
                 </div>
                 <div className="preview-row">
-                  <span>Tahmini Gas Ücreti:</span>
+                  <span>Liquidity Pool Fee:</span>
+                  <span className="preview-value">0.001 BNB</span>
+                </div>
+                <div className="preview-row">
+                  <span>Liquidity BNB:</span>
+                  <span className="preview-value">{formData.bnbAmount} BNB</span>
+                </div>
+                <div className="preview-row">
+                  <span>Estimated Gas Fee:</span>
                   <span className="preview-value">{estimatedGas} BNB</span>
                 </div>
                 <div className="preview-row total">
-                  <span>Toplam Maliyet:</span>
-                  <span className="preview-value total-cost">~{(parseFloat(getTierFee()) + 0.005).toFixed(4)} BNB</span>
+                  <span>Total Cost:</span>
+                  <span className="preview-value total-cost">~{calculateTotalCost()} BNB</span>
                 </div>
               </div>
             </div>
@@ -1409,7 +1409,7 @@ const CreateToken = () => {
         * { box-sizing: border-box;   margin: 0;
   padding: 0;}
         .container {
-          min-height: calc(100vh - 80px); /* Header yüksekliğini çıkar */
+          min-height: calc(100vh - 80px); /* Subtract header height */
           margin-top: 0px !important;
           background: linear-gradient(180deg, #0a0a0a 0%, #1a1a1a 100%);
           color: #FFFFFF;
@@ -2295,26 +2295,26 @@ const CreateToken = () => {
       `}</style>
 
       <div className="header">
-        <h1>Token Oluşturucu</h1>
-        <p>BSC Network'te kendi tokenınızı oluşturun ve LP ekleyin</p>
+        <h1>Token Creator</h1>
+        <p>Create your own token on BSC Network and add LP</p>
         
         <div className={`network-status ${isCorrectNetwork ? 'connected' : 'disconnected'}`}>
           {isCorrectNetwork ? (
             <>
               <FaCheckCircle size={16} />
-              BSC Mainnet'e Bağlı
+              Connected to BSC Mainnet
             </>
           ) : (
             <>
               <FaExclamationCircle size={16} />
-              BSC Mainnet'e Bağlı Değil
+              Not Connected to BSC Mainnet
             </>
           )}
         </div>
         
         {userAddress && (
           <div style={{color: '#94A3B8', fontSize: '0.9rem', marginTop: '0.5rem'}}>
-            Cüzdan: {userAddress.substring(0, 6)}...{userAddress.substring(userAddress.length - 4)}
+            Wallet: {userAddress.substring(0, 6)}...{userAddress.substring(userAddress.length - 4)}
           </div>
         )}
       </div>
@@ -2333,7 +2333,7 @@ const CreateToken = () => {
                 className="btn btn-secondary"
               >
                 <FaArrowLeft size={20} />
-                Geri
+                Previous
               </button>
             )}
             
@@ -2347,7 +2347,7 @@ const CreateToken = () => {
                   !userAddress
                 }
               >
-                İleri
+                Next
                 <FaArrowRight size={20} />
               </button>
             ) : (
@@ -2359,12 +2359,12 @@ const CreateToken = () => {
                 {loading ? (
                   <>
                     <div className="spinner"></div>
-                    Token Oluşturuluyor...
+                    Creating Token...
                   </>
                 ) : (
                   <>
                     <FaRocket size={20} />
-                    Token Oluştur
+                    Create Token
                   </>
                 )}
               </button>
@@ -2382,46 +2382,43 @@ const CreateToken = () => {
           <div className="info-card">
             <h4>
               <FaInfoCircle size={20} />
-              İpuçları
+              Tips
             </h4>
             <ul>
-              <li>🎯 Akılda kalıcı isim ve sembol seçin</li>
-              <li>💰 Gerçekçi toplam arz belirleyin</li>
-              <li>🖼️ Kaliteli logo kullanın</li>
-              <li>💧 LP ekleyerek likidite sağlayın</li>
-              <li>📱 Sosyal medya linkleri ekleyin</li>
-              <li>🔍 Bilgileri dikkatlice kontrol edin</li>
+              <li>🎯 Choose a memorable name and symbol</li>
+              <li>💰 Set a realistic total supply</li>
+              <li>🖼️ Use a quality logo</li>
+              <li>💧 Add LP to provide liquidity</li>
+              <li>📱 Add social media links</li>
+              <li>🔍 Check information carefully</li>
             </ul>
           </div>
 
           <div className="info-card">
             <h4>
               <FaExclamationCircle size={20} />
-              Önemli
+              Important
             </h4>
             <ul>
-              <li>⛽ Gas ücreti gerektirir</li>
-              <li>🔒 İşlem geri alınamaz</li>
-              <li>💧 LP tokenları kilitlenir</li>
-              <li>🛡️ Cüzdan güvenliğinizi kontrol edin</li>
-              <li>🌐 BSC Mainnet kullanın</li>
-              <li>💰 Yeterli BNB bakiyeniz olsun</li>
+              <li>⛽ Gas fee required</li>
+              <li>🔒 Transactions cannot be reversed</li>
+              <li>💧 LP tokens will be locked</li>
+              <li>🛡️ Check your wallet security</li>
+              <li>🌐 Use BSC Mainnet</li>
+              <li>💰 Have sufficient BNB balance</li>
             </ul>
           </div>
 
           <div className="info-card">
             <h4>
               <FaDollarSign size={20} />
-              Paket Ücretleri
+              Token Creation Fee
             </h4>
             <ul>
-              <li>🎯 Basic: {tierFees.basic} BNB</li>
-              <li>🚀 Standard: {tierFees.standard} BNB</li>
-              <li>👑 Premium: {tierFees.premium} BNB</li>
-              <li>📊 Fee Dağılımı:</li>
-              <li>• Platform: {feeDistribution.platform}</li>
-              <li>• Geliştirme: {feeDistribution.development}</li>
-              <li>• Marketing: {feeDistribution.marketing}</li>
+              <li>✅ Fixed Token Fee: 0.0001 BNB</li>
+              <li>✅ Liquidity Pool Fee: 0.001 BNB</li>
+              <li>✅ Estimated Gas: ~0.01 BNB</li>
+              <li>� Total estimated cost: ~0.0111 BNB</li>
             </ul>
           </div>
 
@@ -2429,12 +2426,12 @@ const CreateToken = () => {
             <div className="info-card">
               <h4>
                 <FaCoins size={20} />
-                LP Bilgileri
+                LP Information
               </h4>
               <ul>
-                <li>🔒 LP tokenları kilitli kalacaktır</li>
-                <li>💧 PancakeSwap'te likidite eklenecek</li>
-                <li>⚡ Token oluşturduktan sonra LP ayarlarını yapın</li>
+                <li>🔒 LP tokens will remain locked</li>
+                <li>💧 Liquidity will be added to PancakeSwap</li>
+                <li>⚡ Configure LP settings after creating token</li>
               </ul>
             </div>
           )}
@@ -2442,13 +2439,13 @@ const CreateToken = () => {
           <div className="info-card">
             <h4>
               <FaWallet size={20} />
-              Maliyet Özeti
+              Cost Summary
             </h4>
             <ul>
-              <li>📦 Paket: {getTierFee()} BNB</li>
+              <li>📦 Package: {getTierFee()} BNB</li>
               <li>⛽ Gas: ~0.005 BNB</li>
-              <li>💰 Toplam: ~{(parseFloat(getTierFee()) + 0.005).toFixed(4)} BNB</li>
-              <li>👛 Bakiyeniz: {userBalance} BNB</li>
+              <li>💰 Total: ~{(parseFloat(getTierFee()) + 0.005).toFixed(4)} BNB</li>
+              <li>👛 Your Balance: {userBalance} BNB</li>
             </ul>
           </div>
         </div>

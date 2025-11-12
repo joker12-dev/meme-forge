@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useWallet } from '../contexts/WalletContext';
+import { getBackendURL } from '../utils/api';
 import ErrorAlert from '../components/ErrorAlert';
 import {
   FaPlus, FaEdit, FaTrash, FaCalendarAlt, FaImage,
@@ -50,7 +51,7 @@ const MyPosts = () => {
   const loadMyPosts = async (address, page = 1) => {
     try {
       setLoading(true);
-      const backendURL = process.env.REACT_APP_BACKEND_URL || '${getBackendURL()}';
+      const backendURL = process.env.REACT_APP_BACKEND_URL || 'getBackendURL()';
       
       const response = await fetch(`${backendURL}/api/users/${address}/posts?page=${page}&limit=${postsPerPage}`, {
         headers: { 'wallet-address': address }
@@ -108,7 +109,7 @@ const MyPosts = () => {
 
     try {
       setLoading(true);
-      const backendURL = process.env.REACT_APP_BACKEND_URL || '${getBackendURL()}';
+      const backendURL = process.env.REACT_APP_BACKEND_URL || 'getBackendURL()';
       const formDataMultipart = new FormData();
 
       console.log('📨 [POST SUBMIT] Starting submission...', { walletAddress, image: formData.image ? formData.image.name : null });
@@ -216,7 +217,7 @@ const MyPosts = () => {
     if (!window.confirm('Postu silmek istediğinizden emin misiniz?')) return;
 
     try {
-      const backendURL = process.env.REACT_APP_BACKEND_URL || '${getBackendURL()}';
+      const backendURL = process.env.REACT_APP_BACKEND_URL || 'getBackendURL()';
       const response = await fetch(`${backendURL}/api/posts/${postId}`, {
         method: 'DELETE',
         headers: { 'wallet-address': walletAddress }

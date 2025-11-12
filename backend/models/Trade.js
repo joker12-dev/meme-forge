@@ -281,19 +281,70 @@ Trade.getTokenTradingStats = async function(tokenAddress) {
 };
 
 Trade.getRecentTrades = async function(limit = 20, network = 'BSC') {
-  return await this.findAll({
-    where: {
-      network: network.toUpperCase(),
-      status: 'CONFIRMED'
-    },
-    order: [['timestamp', 'DESC']],
-    limit,
-    include: [{
-      model: Token,
-      as: 'token',
-      attributes: ['name', 'symbol', 'logoURL']
-    }]
-  });
+  try {
+    // Use raw query with LEFT JOIN to get trader info
+    const { QueryTypes } = require('sequelize');
+    
+    const result = await sequelize.query(`
+      SELECT 
+        t.*,
+        u."walletAddress" as "trader.walletAddress",
+        u."username" as "trader.username",
+        u."profileImage" as "trader.profileImage"
+      FROM trades t
+      LEFT JOIN users u ON t."user" = u."walletAddress"
+      WHERE t.network = :network
+      AND t.status = 'CONFIRMED'
+      ORDER BY t.timestamp DESC
+      LIMIT :limit
+    `, {
+      replacements: { network: network.toUpperCase(), limit },
+      type: QueryTypes.SELECT,
+      raw: true,
+      subQuery: false
+    });
+    
+    // Transform to match the ORM structure
+    const transformed = result.map(row => {
+      const trade = {};
+      const trader = {};
+      
+      Object.keys(row).forEach(key => {
+        if (key.startsWith('trader.')) {
+          trader[key.replace('trader.', '')] = row[key];
+        } else {
+          trade[key] = row[key];
+        }
+      });
+      
+      trade.trader = trader;
+      return trade;
+    });
+    
+    // DEBUG LOG
+    if (result.length > 0) {
+      console.log('📊 First Trade with Trader:', JSON.stringify(transformed[0], null, 2));
+      console.log('📊 Trader Object:', transformed[0].trader);
+    }
+    
+    return transformed;
+  } catch (error) {
+    console.error('❌ Error in getRecentTrades:', error);
+    // Fallback - trades without user info
+    try {
+      return await this.findAll({
+        where: {
+          network: network.toUpperCase(),
+          status: 'CONFIRMED'
+        },
+        order: [['timestamp', 'DESC']],
+        limit
+      });
+    } catch (fallbackError) {
+      console.error('❌ Fallback error:', fallbackError);
+      return [];
+    }
+  }
 };
 
 Trade.getUserStats = async function(userAddress) {
@@ -409,20 +460,6 @@ Trade.prototype.toApiResponse = function() {
   trade.dateDisplay = this.timestamp ? new Date(this.timestamp).toLocaleDateString() : '';
   
   return trade;
-};
-
-// Define associations
-Trade.associate = (models) => {
-  Trade.belongsTo(models.Token, {
-    foreignKey: 'tokenAddress',
-    targetKey: 'address',
-    as: 'token'
-  });
-  Trade.belongsTo(models.User, {
-    foreignKey: 'user',
-    targetKey: 'walletAddress',
-    as: 'trader'
-  });
 };
 
 // Model options including indexes

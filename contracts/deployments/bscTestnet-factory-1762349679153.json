@@ -1,0 +1,7 @@
+{
+  "network": "bscTestnet",
+  "timestamp": "2025-11-05T13:34:39.153Z",
+  "tokenFactory": "0xA6BA310Bfb5ec9C12E11B0AEFC517bbB979e4eE1",
+  "oldFactory": "0xE92b066F66C7225fa508dffD461cD62Ed4b767FC",
+  "note": "This factory has setLiquidityAdder() function"
+}

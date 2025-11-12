@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchMultipleTokensData, mergeDexDataWithToken } from '../utils/dexscreener';
-import { FaGlobe, FaTelegramPlane, FaTwitter, FaStar, FaChartLine, FaDollarSign, FaChartBar, FaPlus, FaArrowUp, FaArrowDown, FaArrowLeft, FaArrowRight } from 'react-icons/fa';
+import { getBackendURL } from '../utils/api';
+import { FaGlobe, FaTelegramPlane, FaTwitter, FaStar, FaChartLine, FaDollarSign, FaChartBar, FaPlus, FaArrowUp, FaArrowDown, FaArrowLeft, FaArrowRight, FaCircle } from 'react-icons/fa';
 import { FiSearch } from 'react-icons/fi';
 import { BiUserCircle } from 'react-icons/bi';
 import HypeSlider from './HypeSlider';
@@ -109,7 +110,7 @@ const TokenList = () => {
     // Polling ile her 2 saniyede bir canlı işlemleri backend'den çek
     let intervalId;
     const fetchLiveTransactions = () => {
-      const backendURL = process.env.REACT_APP_BACKEND_URL || '${getBackendURL()}';
+      const backendURL = process.env.REACT_APP_BACKEND_URL || getBackendURL();
       fetch(`${backendURL}/api/trades/recent/BSC?limit=30`)
         .then(res => res.json())
         .then(data => {
@@ -164,7 +165,7 @@ const TokenList = () => {
   const fetchTokens = useCallback(async () => {
     try {
       setLoading(true);
-      const backendURL = process.env.REACT_APP_BACKEND_URL || '${getBackendURL()}';
+      const backendURL = process.env.REACT_APP_BACKEND_URL || getBackendURL();
       
       // Build query params
       const params = new URLSearchParams({
@@ -377,17 +378,17 @@ const TokenList = () => {
             <div className="loading-spinner"></div>
           </div>
         ) : (
-          <div className="token-grid">
+          <div className="token-list-grid">
             {filteredTokens.map((token) => (
               <div
                 key={token.address}
-                className={`token-card ${token.featured ? 'featured' : ''}`}
+                className={`token-list-card ${token.featured ? 'featured' : ''}`}
                 onClick={() => window.location.href = `/token/${token.address}`}
               >
                 {/* Badges */}
                 <div className="token-badges">
-                  {token.featured && <span className="badge featured">⭐ Featured</span>}
-                  {token.liveOnDex && <span className="badge live">🔴 Live</span>}
+                  {token.featured && <span className="badge featured"><FaStar style={{marginRight: '0.25rem'}} /> Featured</span>}
+                  {token.liveOnDex && <span className="badge live"><FaCircle style={{marginRight: '0.25rem', fontSize: '0.6rem'}} /> Live</span>}
                 </div>
 
                 {/* Header */}
@@ -395,7 +396,7 @@ const TokenList = () => {
                   <div className="token-logo">
                     {token.logoURL ? (
                       <img 
-                        src={token.logoURL.startsWith('http') ? token.logoURL : `${process.env.REACT_APP_BACKEND_URL || '${getBackendURL()}'}${token.logoURL}`}
+                        src={token.logoURL.startsWith('http') ? token.logoURL : `${process.env.REACT_APP_BACKEND_URL || getBackendURL()}${token.logoURL}`}
                         alt={token.name}
                         style={{width: '100%', height: '100%', borderRadius: '12px', objectFit: 'cover'}}
                         onError={(e) => {
@@ -445,22 +446,22 @@ const TokenList = () => {
                 </div>
 
                 {/* Stats */}
-                <div className="token-stats">
-                  <div className="stat-item">
-                    <div className="stat-label">Market Cap</div>
-                    <div className="stat-value">${formatNumber(token.marketCap || token.fdv)}</div>
+                <div className="token-list-stats">
+                  <div className="token-list-stat-item">
+                    <div className="token-list-stat-label">Market Cap</div>
+                    <div className="token-list-stat-value">${formatNumber(token.marketCap || token.fdv)}</div>
                   </div>
-                  <div className="stat-item">
-                    <div className="stat-label">Volume 24h</div>
-                    <div className="stat-value">${formatNumber(token.volume24h)}</div>
+                  <div className="token-list-stat-item">
+                    <div className="token-list-stat-label">Volume 24h</div>
+                    <div className="token-list-stat-value">${formatNumber(token.volume24h)}</div>
                   </div>
-                  <div className="stat-item">
-                    <div className="stat-label">Liquidity</div>
-                    <div className="stat-value">${formatNumber(token.liquidity)}</div>
+                  <div className="token-list-stat-item">
+                    <div className="token-list-stat-label">Liquidity</div>
+                    <div className="token-list-stat-value">${formatNumber(token.liquidity)}</div>
                   </div>
-                  <div className="stat-item">
-                    <div className="stat-label">Holders</div>
-                    <div className="stat-value">{formatNumber(token.holders || 0)}</div>
+                  <div className="token-list-stat-item">
+                    <div className="token-list-stat-label">Holders</div>
+                    <div className="token-list-stat-value">{formatNumber(token.holders || 0)}</div>
                   </div>
                 </div>
 

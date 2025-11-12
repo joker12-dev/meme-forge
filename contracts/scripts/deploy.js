@@ -1,4 +1,5 @@
 const { ethers } = require("hardhat");
+const hre = require("hardhat");
 
 async function deploy(contractName, factory, ...args) {
   console.log(`Deploying ${contractName}...`);
@@ -22,11 +23,6 @@ async function main() {
   const gasPrice = await ethers.provider.getFeeData();
   console.log("Current gas price:", ethers.formatUnits(gasPrice.gasPrice, "gwei"), "gwei");
 
-  const deploymentConfig = {
-    gasPrice: ethers.parseUnits("1.5", "gwei"), // 1.5 gwei
-    gasLimit: 5000000  // Optimize gas limit
-  };
-
   // Check network and deploy MockPancakeRouter for localhost
   const network = await ethers.provider.getNetwork();
   let pancakeSwapRouter;
@@ -35,7 +31,7 @@ async function main() {
     // localhost - deploy mock router
     console.log("Deploying MockPancakeRouter for localhost...");
     const MockRouter = await ethers.getContractFactory("MockPancakeRouter");
-    const mockRouter = await MockRouter.deploy(deploymentConfig);
+    const mockRouter = await MockRouter.deploy();
     await mockRouter.waitForDeployment();
     pancakeSwapRouter = await mockRouter.getAddress();
     console.log("MockPancakeRouter:", pancakeSwapRouter);
@@ -47,13 +43,7 @@ async function main() {
   // Deploy MemeToken Template
   console.log("Deploying MemeToken Template...");
   const MemeToken = await ethers.getContractFactory("MemeToken");
-  const memeToken = await MemeToken.deploy(
-    "Template", 
-    "TEMP",
-    ethers.parseEther("1000000"),
-    pancakeSwapRouter,
-    deploymentConfig
-  );
+  const memeToken = await MemeToken.deploy();
   await memeToken.waitForDeployment();
   const memeTokenAddress = await memeToken.getAddress();
   console.log("MemeToken Template:", memeTokenAddress);
@@ -63,11 +53,10 @@ async function main() {
   const TokenFactory = await ethers.getContractFactory("TokenFactory");
   const factory = await TokenFactory.deploy(
     process.env.PLATFORM_WALLET,
-    process.env.MARKETING_WALLET,
     process.env.DEVELOPMENT_WALLET,
+    process.env.MARKETING_WALLET,
     process.env.PLATFORM_COMMISSION_WALLET,
-    pancakeSwapRouter,
-    deploymentConfig
+    pancakeSwapRouter
   );
   await factory.waitForDeployment();
   const factoryAddress = await factory.getAddress();
@@ -75,26 +64,25 @@ async function main() {
 
   // Set template
   await factory.setMemeTokenTemplate(memeTokenAddress);
-  console.log("Template set");
+  console.log("✅ Template set");
 
   // Deploy LiquidityAdder
   console.log("Deploying LiquidityAdder...");
   const LiquidityAdder = await ethers.getContractFactory("LiquidityAdder");
   const liquidityAdder = await LiquidityAdder.deploy(
-    "0xD99D1c33F9fC3444f8101754aBC46c52416550D1", // Testnet Router
+    pancakeSwapRouter,
     ethers.parseEther("100"), // minTokenAmount
-    ethers.parseEther("0.01"), // minEthAmount
-    150, // platformFee (150 = %1.5 fee) - Max is 200 (%2)
-    process.env.LIQUIDITY_FEE_WALLET,
-    deploymentConfig
+    ethers.parseEther("0.0005"), // minEthAmount (0.0005 BNB - lower than 0.001 LP fee)
+    150, // platformFee (150 = %1.5 fee)
+    process.env.LIQUIDITY_FEE_WALLET
   );
   await liquidityAdder.waitForDeployment();
   const liquidityAdderAddress = await liquidityAdder.getAddress();
   console.log("LiquidityAdder:", liquidityAdderAddress);
 
-  // IMPORTANT: Set LiquidityAdder address in TokenFactory for auto-approval
+  // IMPORTANT: Set LiquidityAdder address in TokenFactory
   console.log("\n⚙️ Setting LiquidityAdder address in TokenFactory...");
-  const setLiquidityAdderTx = await factory.setLiquidityAdder(liquidityAdderAddress, deploymentConfig);
+  const setLiquidityAdderTx = await factory.setLiquidityAdder(liquidityAdderAddress);
   await setLiquidityAdderTx.wait();
   console.log("✅ LiquidityAdder address set in TokenFactory");
 
@@ -121,12 +109,7 @@ async function main() {
     console.log("\n1️⃣ Verifying MemeToken...");
     await hre.run("verify:verify", {
       address: memeTokenAddress,
-      constructorArguments: [
-        "Template",
-        "TEMP",
-        ethers.parseEther("1000000"),
-        pancakeSwapRouter
-      ],
+      constructorArguments: [],
     });
     console.log("✅ MemeToken verified!");
   } catch (error) {
@@ -143,8 +126,8 @@ async function main() {
       address: factoryAddress,
       constructorArguments: [
         process.env.PLATFORM_WALLET,
-        process.env.MARKETING_WALLET,
         process.env.DEVELOPMENT_WALLET,
+        process.env.MARKETING_WALLET,
         process.env.PLATFORM_COMMISSION_WALLET,
         pancakeSwapRouter
       ],
@@ -163,7 +146,7 @@ async function main() {
     await hre.run("verify:verify", {
       address: liquidityAdderAddress,
       constructorArguments: [
-        "0xD99D1c33F9fC3444f8101754aBC46c52416550D1",
+        pancakeSwapRouter,
         ethers.parseEther("100"),
         ethers.parseEther("0.01"),
         150,

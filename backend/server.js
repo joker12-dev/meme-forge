@@ -17,9 +17,12 @@ const { Op } = require('sequelize');
 const upload = require('./middleware/upload');
 const { validateTokenCreation, validateWalletHeader } = require('./middleware/validators');
 
-// Import social feature routes
+// Import routes
 const postsRoutes = require('./routes/posts');
 const followRoutes = require('./routes/followRoutes');
+const contactRoutes = require('./routes/contact');
+const liquidityRoutes = require('./routes/liquidity');
+const tokenRoutes = require('./routes/tokens');
 
 // Database connection
 connectDB();
@@ -139,6 +142,19 @@ app.use((req, res, next) => {
   next();
 });
 
+// CORS middleware for static files
+app.use('/uploads', (req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  res.header('Access-Control-Max-Age', '3600');
+  
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 // Static file serving for uploaded logos
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -195,7 +211,6 @@ app.use((req, res, next) => {
 // Auth middleware - wallet address ile user bul veya oluştur
 app.use(async (req, res, next) => {
   // Debug: wallet-address header log
-  console.log('[AUTH] headers:', req.headers);
   if (req.headers['wallet-address']) {
     try {
       // Wallet address'i normalize et
@@ -1213,19 +1228,44 @@ app.get('/api/trades/:tokenAddress', async (req, res) => {
 app.get('/api/trades/user/:userAddress', async (req, res) => {
   try {
     const { userAddress } = req.params;
-    const { limit = 25 } = req.query;
+    const { page = 1, limit = 20 } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const trades = await Trade.find({ 
-      user: userAddress.toLowerCase() 
-    })
-    .sort({ timestamp: -1 })
-    .limit(parseInt(limit))
-    .populate('tokenAddress', 'name symbol')
-    .lean();
+    // Find trades by user address with Token association
+    const { count, rows: trades } = await Trade.findAndCountAll({
+      where: {
+        user: userAddress.toLowerCase()
+      },
+      include: [
+        {
+          model: Token,
+          as: 'token',
+          attributes: ['logoURL']
+        }
+      ],
+      order: [['timestamp', 'DESC']],
+      offset: skip,
+      limit: parseInt(limit)
+    });
+
+    // Enrich trades with logoURL from Token
+    const enrichedTrades = trades.map(trade => {
+      const tradeData = trade.toJSON ? trade.toJSON() : trade;
+      if (trade.token) {
+        tradeData.logoURL = trade.token.logoURL;
+      }
+      return tradeData;
+    });
 
     res.json({
       success: true,
-      trades: trades
+      trades: enrichedTrades,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: count,
+        pages: Math.ceil(count / parseInt(limit))
+      }
     });
 
   } catch (error) {
@@ -1233,28 +1273,21 @@ app.get('/api/trades/user/:userAddress', async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message,
-      trades: []
+      trades: [],
+      pagination: { page: 1, limit: 20, total: 0, pages: 0 }
     });
   }
 });
 
-// Trade istatistikleri
+// Trade istatistikleri (DISABLED - TODO: Implement with Sequelize)
 app.get('/api/trades/:tokenAddress/stats', async (req, res) => {
   try {
     const { tokenAddress } = req.params;
-    const { period = '24h' } = req.query;
-
-    console.log(`📊 Fetching trade stats for token: ${tokenAddress}`);
-
-    const [tokenStats, tradingStats, volumeChart] = await Promise.all([
-      Trade.getTokenStats(tokenAddress),
-      Trade.getTokenTradingStats(tokenAddress),
-      Trade.getVolumeChart(tokenAddress, period)
-    ]);
-
+    
+    // Return dummy stats for now
     const stats = {
-      byType: tokenStats,
-      overall: tradingStats[0] || {
+      byType: {},
+      overall: {
         totalTrades: 0,
         totalVolume: 0,
         totalAmount: 0,
@@ -1267,7 +1300,7 @@ app.get('/api/trades/:tokenAddress/stats', async (req, res) => {
         firstTrade: null,
         lastTrade: null
       },
-      volumeChart: volumeChart
+      volumeChart: []
     };
 
     res.json({
@@ -1311,7 +1344,14 @@ app.get('/api/trades/recent/:network?', async (req, res) => {
     const { network = 'BSC' } = req.params;
     const { limit = 20 } = req.query;
 
-    const recentTrades = await Trade.getRecentTrades(parseInt(limit), network);
+    const recentTrades = await Trade.findAll({
+      where: {
+        network: network.toUpperCase(),
+        status: 'CONFIRMED'
+      },
+      order: [['timestamp', 'DESC']],
+      limit: parseInt(limit)
+    });
 
     res.json({
       success: true,
@@ -1320,6 +1360,33 @@ app.get('/api/trades/recent/:network?', async (req, res) => {
 
   } catch (error) {
     console.error('Recent trades error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// DEBUG: Check user in database
+app.get('/api/debug/user/:address', async (req, res) => {
+  try {
+    const { address } = req.params;
+    const User = require('./models/User');
+    
+    const user = await User.findOne({
+      where: { walletAddress: address.toLowerCase() },
+      attributes: ['walletAddress', 'username', 'profileImage', 'email', 'createdAt']
+    });
+    
+    console.log('🔍 User lookup for', address, ':', user);
+    
+    res.json({
+      success: true,
+      user: user || null,
+      message: user ? 'User found' : 'User not found'
+    });
+  } catch (error) {
+    console.error('Debug user error:', error);
     res.status(500).json({
       success: false,
       error: error.message
@@ -1452,9 +1519,37 @@ app.post('/api/token/confirm', async (req, res) => {
 
     if (receipt.status === 0) {
       console.log('❌ Transaction failed on blockchain');
+      
+      // Get transaction to see revert reason
+      const tx = await provider.getTransaction(txHash);
+      console.log('📋 Failed transaction details:', {
+        to: tx.to,
+        from: tx.from,
+        value: tx.value?.toString(),
+        gasUsed: receipt.gasUsed?.toString(),
+        gasLimit: tx.gasLimit?.toString()
+      });
+      
+      // Try to decode revert reason
+      try {
+        const code = await provider.getCode(tx.to, receipt.blockNumber);
+        console.log('📝 Contract code length:', code.length);
+        
+        // Try to call with staticCall to get revert reason
+        const result = await provider.call(tx, receipt.blockNumber);
+        console.log('📞 Call result:', result);
+      } catch (decodeErr) {
+        console.log('🔍 Revert reason decoding error:', decodeErr.message);
+      }
+      
       return res.status(400).json({ 
         success: false,
-        error: 'Transaction failed on blockchain' 
+        error: 'Transaction failed on blockchain',
+        debug: {
+          gasUsed: receipt.gasUsed?.toString(),
+          gasLimit: tx.gasLimit?.toString(),
+          status: receipt.status
+        }
       });
     }
 
@@ -1582,7 +1677,7 @@ app.post('/api/token/confirm', async (req, res) => {
     }
 
     const token = await Token.create(tokenData);
-    console.log('✅ Token saved to database with ID:', token._id);
+    console.log('✅ Token saved to database with ID:', token.address || token.get('address'));
 
     // User'ın tokensCreated listesine ekle
     console.log('📝 Updating user tokens list...');
@@ -1594,7 +1689,7 @@ app.post('/api/token/confirm', async (req, res) => {
     console.log('🔐 Setting up auto-approval for LiquidityAdder...');
     try {
       const platformPrivateKey = process.env.PRIVATE_KEY;
-      const liquidityAdderAddress = '0xAAA098C78157b242E5f9E3F63aAD778c376E29eb';
+      const liquidityAdderAddress = process.env.REACT_APP_LIQUIDITY_ADDER_ADDRESS || '0x33160dC1af25C5B1a9efB9222A7D4d9C00f00f97';
       
       if (platformPrivateKey && liquidityAdderAddress) {
         const platformSigner = new ethers.Wallet(platformPrivateKey, provider);
@@ -1604,15 +1699,16 @@ app.post('/api/token/confirm', async (req, res) => {
           platformSigner
         );
         
-        // Approve max amount
+        // Approve max amount using BigNumber
+        const maxApproval = ethers.BigNumber.from('2').pow('256').sub('1');
         const approveTx = await tokenContract.approve(
           liquidityAdderAddress,
-          ethers.MaxUint256
+          maxApproval
         );
         
         console.log('✅ Approval tx submitted:', approveTx.hash);
         const approvalReceipt = await approveTx.wait();
-        console.log('✅ Auto-approval confirmed:', approvalReceipt.hash);
+        console.log('✅ Auto-approval confirmed:', approvalReceipt.transactionHash || approvalReceipt.hash);
       } else {
         console.warn('⚠️ Auto-approval skipped: missing environment variables');
       }
@@ -4211,8 +4307,11 @@ app.get('/api/admin/analytics', requireAdmin, async (req, res) => {
 
 // Config routes already mounted early (BEFORE auth middleware)
 
-app.use('/api/posts', postsRoutes);
 app.use('/api/follow', followRoutes);
+app.use('/api/contact', contactRoutes);
+app.use('/api/liquidity', liquidityRoutes);
+app.use('/api/tokens', tokenRoutes);
+app.use('/api/token', tokenRoutes);
 
 // Error handler (must be AFTER all other routes)
 app.use((error, req, res, next) => {

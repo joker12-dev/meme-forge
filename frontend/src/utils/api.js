@@ -64,6 +64,9 @@ export const tokenAPI = {
   // Token oluştur
   createToken: (tokenData) => api.post('/api/token/create', tokenData),
   
+  // LP ile token oluştur
+  createTokenWithLP: (tokenData) => api.post('/api/token/create-with-lp', tokenData),
+  
   // Token creation'ı onayla
   confirmTokenCreation: (confirmationData) => api.post('/api/token/confirm', confirmationData),
   

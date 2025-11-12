@@ -56,18 +56,26 @@ router.get('/', async (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
     const offset = (page - 1) * limit;
     const sortBy = req.query.sortBy || 'newest'; // newest, likes-desc, likes-asc, comments-desc
+    const type = req.query.type || 'all'; // all, launch, update, announcement
 
-    console.log('📨 GET /api/posts - Page:', page, 'Limit:', limit, 'Sort:', sortBy);
+    console.log('📨 GET /api/posts - Page:', page, 'Limit:', limit, 'Sort:', sortBy, 'Type:', type);
+
+    // Build where clause for type filtering
+    let where = {};
+    if (type !== 'all') {
+      where.postType = type;
+    }
 
     // Get all posts first, then sort in JS if needed (safer approach)
     const { count, rows } = await Post.findAndCountAll({
+      where,
       include: [
         {
           association: 'creator',
           attributes: ['walletAddress', 'username', 'profileImage', 'badges']
         }
       ],
-      order: [['createdAt', 'DESC']],
+      order: [['isPinned', 'DESC'], ['createdAt', 'DESC']],
       limit: 1000, // Get more for sorting
       offset: 0
     });
@@ -115,6 +123,101 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Get posts error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/posts/tag/:tagName
+ * Belirtilen etiketi kullanan tüm postları getir
+ * MUST be BEFORE /:postId route to avoid param matching
+ */
+router.get('/tag/:tagName', async (req, res) => {
+  try {
+    const { tagName } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = (page - 1) * limit;
+
+    console.log('🏷️ GET /api/posts/tag/:tagName - Tag:', tagName, 'Page:', page);
+
+    // Case-insensitive tag search using PostgreSQL array operations
+    const { count, rows } = await Post.findAndCountAll({
+      where: {
+        tags: {
+          [Op.contains]: [tagName.toLowerCase()]
+        }
+      },
+      include: [
+        {
+          association: 'creator',
+          attributes: ['walletAddress', 'username', 'profileImage', 'badges']
+        }
+      ],
+      order: [['isPinned', 'DESC'], ['createdAt', 'DESC']],
+      limit,
+      offset
+    });
+
+    console.log(`✅ Found ${rows.length} posts with tag: ${tagName}`);
+
+    res.json({
+      success: true,
+      tag: tagName,
+      posts: rows,
+      pagination: {
+        total: count,
+        page,
+        pages: Math.ceil(count / limit),
+        limit
+      }
+    });
+  } catch (error) {
+    console.error('❌ Get posts by tag error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/posts/tags/popular
+ * En çok kullanılan etiketleri getir
+ * MUST be BEFORE /:postId route
+ */
+router.get('/tags/popular', async (req, res) => {
+  try {
+    console.log('🏆 GET /api/posts/tags/popular - Fetching popular tags');
+
+    // Get all posts
+    const posts = await Post.findAll({
+      attributes: ['tags'],
+      raw: true
+    });
+
+    // Count tag frequencies
+    const tagCounts = {};
+    posts.forEach(post => {
+      if (post.tags && Array.isArray(post.tags)) {
+        post.tags.forEach(tag => {
+          const lowerTag = tag.toLowerCase();
+          tagCounts[lowerTag] = (tagCounts[lowerTag] || 0) + 1;
+        });
+      }
+    });
+
+    // Sort by frequency and get top 5
+    const popularTags = Object.entries(tagCounts)
+      .map(([tag, count]) => ({ tag, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    console.log(`✅ Found ${popularTags.length} popular tags:`, popularTags);
+
+    res.json({
+      success: true,
+      tags: popularTags
+    });
+  } catch (error) {
+    console.error('❌ Get popular tags error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -236,7 +339,7 @@ router.post('/', createPostLimiter, validatePostContent, upload.single('image'),
 router.put('/:postId', upload.single('image'), async (req, res) => {
   try {
     const { postId } = req.params;
-    const { title, content, postType } = req.body;
+    const { title, content, postType, launchTime, website, twitter, telegram, discord, tags } = req.body;
     const creatorAddress = req.headers['wallet-address'];
 
     if (!creatorAddress) {
@@ -268,6 +371,16 @@ router.put('/:postId', upload.single('image'), async (req, res) => {
     if (title) post.title = title;
     if (content) post.content = content;
     if (postType) post.postType = postType;
+    if (launchTime) post.launchTime = launchTime;
+    if (website) post.website = website;
+    if (twitter) post.twitter = twitter;
+    if (telegram) post.telegram = telegram;
+    if (discord) post.discord = discord;
+    
+    // Update tags
+    if (tags) {
+      post.tags = typeof tags === 'string' ? JSON.parse(tags) : tags;
+    }
 
     // Handle new image
     if (req.file) {
@@ -292,10 +405,8 @@ router.put('/:postId', upload.single('image'), async (req, res) => {
     const updatedPost = await Post.findByPk(postId, {
       include: [
         {
-          model: User,
-          attributes: ['walletAddress', 'username', 'profileImage'],
-          as: 'creator',
-          foreignKey: 'creatorAddress'
+          association: 'creator',
+          attributes: ['walletAddress', 'username', 'profileImage', 'badges']
         }
       ]
     });
@@ -696,6 +807,35 @@ router.post('/comment/:commentId/like', async (req, res) => {
     });
   } catch (error) {
     console.error('Like comment error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// POST /api/posts/:postId/pin - Toggle pin status
+router.post('/:postId/pin', async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const Post = require('../models/Post');
+
+    // Get current post
+    const post = await Post.findByPk(postId);
+    if (!post) {
+      return res.status(404).json({ success: false, error: 'Post not found' });
+    }
+
+    // Toggle pin status
+    const newPinStatus = !post.isPinned;
+    post.isPinned = newPinStatus;
+    await post.save();
+
+    res.json({
+      success: true,
+      message: newPinStatus ? 'Post pinned' : 'Post unpinned',
+      isPinned: newPinStatus,
+      post: post
+    });
+  } catch (error) {
+    console.error('Pin post error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });

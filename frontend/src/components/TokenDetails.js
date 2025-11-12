@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { ethers } from 'ethers';
 import HypeModal from './HypeModal';
+import AddLiquidityModal from './AddLiquidityModal';
 import ErrorAlert from './ErrorAlert';
+import { useWallet } from '../contexts/WalletContext';
+import { useNotification } from './NotificationContainer';
 import { getBackendURL } from '../utils/api';
 import {
   Chart as ChartJS,
@@ -35,7 +39,11 @@ import {
   FaExchangeAlt,
   FaSyncAlt,
   FaCheckCircle,
-  FaShieldAlt
+  FaShieldAlt,
+  FaFire,
+  FaRocket,
+  FaPlus,
+  FaHistory
 } from 'react-icons/fa';
 import { BiTrendingUp } from 'react-icons/bi';
 
@@ -150,6 +158,8 @@ const APIService = {
 
 const TokenDetails = () => {
   const { address } = useParams();
+  const { account, connect, isConnecting } = useWallet();
+  const { showSuccess, showError, showWarning, showInfo } = useNotification();
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -171,9 +181,11 @@ const TokenDetails = () => {
   const [tokenContract, setTokenContract] = useState(null);
   const [routerContract, setRouterContract] = useState(null);
   const [timeframe, setTimeframe] = useState('1D');
+  const [creatorInfo, setCreatorInfo] = useState(null);
   const [isFavorite, setIsFavorite] = useState(false);
   const [priceChange1h, setPriceChange1h] = useState(0);
   const [hypeModalOpen, setHypeModalOpen] = useState(false);
+  const [addLiquidityModalOpen, setAddLiquidityModalOpen] = useState(false);
   const [priceChange7d, setPriceChange7d] = useState(0);
   const [holders, setHolders] = useState('0');
   const [hypeStatus, setHypeStatus] = useState(null); // { tier: 'gold'/'silver'/'bronze', active: true/false }
@@ -265,6 +277,37 @@ const TokenDetails = () => {
   }, [address]);
 
   // Auto-refresh data
+  // Auto-connect wallet on page load for swap operations
+  useEffect(() => {
+    const autoConnect = async () => {
+      if (!account && !isConnecting) {
+        try {
+          console.log('🔗 Auto-connecting wallet for swap operations...');
+          await connect('metamask');
+        } catch (error) {
+          console.warn('⚠️ Auto-connect skipped (user will connect manually if needed)');
+        }
+      }
+    };
+
+    autoConnect();
+  }, []);
+
+  // Update connectedAccount when WalletContext account changes
+  useEffect(() => {
+    if (account) {
+      setConnectedAccount(account);
+    }
+  }, [account]);
+
+  // Fetch balances when connected account changes or token contract is ready
+  useEffect(() => {
+    if (connectedAccount && tokenContract && provider) {
+      console.log('💰 Fetching balances for:', connectedAccount);
+      fetchBalances(connectedAccount);
+    }
+  }, [connectedAccount, tokenContract, provider]);
+
   useEffect(() => {
     if (autoRefresh && dexScreenerPairAddress) {
       refreshIntervalRef.current = setInterval(() => {
@@ -334,7 +377,8 @@ const TokenDetails = () => {
         website: backendToken?.website || 'https://example.com',
         telegram: backendToken?.telegram || 'https://t.me/example',
         twitter: backendToken?.twitter || 'https://twitter.com/example',
-        logoURL: backendToken?.logoURL || null
+        logoURL: backendToken?.logoURL || null,
+        creator: backendToken?.creator || null
       });
       
       // Set logo if available
@@ -353,7 +397,8 @@ const TokenDetails = () => {
         fetchDexScreenerData(),
         fetchTokenTrades(),
         fetchTokenHolders(),
-        fetchHypeStatus()
+        fetchHypeStatus(),
+        fetchCreatorInfo()
       ]);
       
     } catch (error) {
@@ -633,7 +678,7 @@ const TokenDetails = () => {
     try {
       await window.ethereum.request({
         method: 'wallet_switchEthereumChain',
-        params: [{ chainId: '0x38' }],
+        params: [{ chainId: '0x61' }], // BSC Testnet (97)
       });
     } catch (switchError) {
       if (switchError.code === 4902) {
@@ -641,19 +686,19 @@ const TokenDetails = () => {
           await window.ethereum.request({
             method: 'wallet_addEthereumChain',
             params: [{
-              chainId: '0x38',
-              chainName: 'Binance Smart Chain',
+              chainId: '0x61', // BSC Testnet (97)
+              chainName: 'Binance Smart Chain Testnet',
               nativeCurrency: {
                 name: 'BNB',
                 symbol: 'BNB',
                 decimals: 18
               },
-              rpcUrls: ['https://bsc-dataseed.binance.org/'],
-              blockExplorerUrls: ['https://bscscan.com/']
+              rpcUrls: ['https://data-seed-prebsc-1-s1.binance.org:8545/'],
+              blockExplorerUrls: ['https://testnet.bscscan.com/']
             }]
           });
         } catch (addError) {
-          console.error('BSC network eklenemedi:', addError);
+          console.error('BSC Testnet network eklenemedi:', addError);
         }
       }
     }
@@ -662,7 +707,7 @@ const TokenDetails = () => {
   // Connect wallet
   const connectWallet = async () => {
     if (!window.ethereum) {
-      alert('Please install MetaMask!');
+      showError('Please install MetaMask!');
       return;
     }
 
@@ -675,10 +720,11 @@ const TokenDetails = () => {
       
       setConnectedAccount(accounts[0]);
       await fetchBalances(accounts[0]);
+      showSuccess('Wallet connected successfully!');
       
     } catch (error) {
       console.error('Wallet connection failed:', error);
-      alert('Wallet connection failed: ' + error.message);
+      showError('Wallet connection failed: ' + error.message);
     }
   };
 
@@ -747,10 +793,26 @@ const TokenDetails = () => {
     }
   };
 
+  // Fetch creator info (holdings %)
+  const fetchCreatorInfo = async () => {
+    try {
+      const response = await fetch(`${getBackendURL()}/api/tokens/${address}/creator-info`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          console.log('✅ Creator info fetched:', data.creator);
+          setCreatorInfo(data.creator);
+        }
+      }
+    } catch (error) {
+      console.warn('⚠️ Could not fetch creator info:', error);
+    }
+  };
+
   // Add Liquidity Function
   const addLiquidity = async (tokenAmount, bnbAmount) => {
     if (!provider || !tokenContract || !connectedAccount) {
-      alert('Please connect your wallet first');
+      showWarning('Please connect your wallet first');
       return;
     }
 
@@ -785,24 +847,24 @@ const TokenDetails = () => {
       const receipt = await tx.wait();
       console.log('Liquidity added:', receipt);
       
-      alert('✅ Liquidity added successfully!');
+      showSuccess('✅ Liquidity added successfully!');
       await fetchDexScreenerData(); // Refresh price data
       
     } catch (error) {
       console.error('Add liquidity error:', error);
-      alert('❌ Failed to add liquidity: ' + error.message);
+      showError('❌ Failed to add liquidity: ' + error.message);
     }
   };
 
   // Execute swap
   const executeSwap = async () => {
-    if (!provider || !routerContract || !swapAmount || parseFloat(swapAmount) <= 0) {
-      alert('Please enter a valid amount');
+    if (!provider || !swapAmount || parseFloat(swapAmount) <= 0) {
+      showWarning('Please enter a valid amount');
       return;
     }
 
     if (!connectedAccount) {
-      alert('Please connect your wallet first');
+      showWarning('Please connect your wallet first');
       return;
     }
 
@@ -810,20 +872,58 @@ const TokenDetails = () => {
 
     try {
       const signer = await provider.getSigner();
-      const routerWithSigner = routerContract.connect(signer);
+      
+      // Re-initialize router dynamically (handles network changes)
+      const { getContractAddresses } = await import('../utils/contracts');
+      const addresses = await getContractAddresses();
+      const routerAddr = addresses.pancakeRouter;
+      const currentRouterContract = new ethers.Contract(routerAddr, PANCAKE_ROUTER_ABI, provider);
+      const routerWithSigner = currentRouterContract.connect(signer);
+      
+      console.log('🔧 Using Router for swap:', routerAddr);
       
       const amountIn = ethers.parseUnits(swapAmount, isBuying ? 18 : token?.decimals);
       // Use runtime WBNB address, fallback to testnet WBNB
       const wbnb = RUNTIME_WBNB_ADDRESS || '0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd';
-      console.log('💱 Swap path:', isBuying ? `BNB(${wbnb}) → Token(${address})` : `Token(${address}) → BNB(${wbnb})`);
-      const path = isBuying ? [wbnb, address] : [address, wbnb];
+      const tokenAddr = address.toLowerCase();
+      const wbnbAddr = wbnb.toLowerCase();
+      console.log('💱 Swap path:', isBuying ? `BNB(${wbnbAddr}) → Token(${tokenAddr})` : `Token(${tokenAddr}) → BNB(${wbnbAddr})`);
+      const path = isBuying ? [wbnbAddr, tokenAddr] : [tokenAddr, wbnbAddr];
       
       // Check if liquidity exists by trying to get amounts
       let amounts;
-      try {
-        amounts = await routerContract.getAmountsOut(amountIn, path);
-      } catch (quoteError) {
-        throw new Error('⚠️ Bu token için liquidity pool bulunamadı! Önce "Add Liquidity" butonunu kullanarak liquidity eklemelisiniz.');
+      let quoteAttempts = 0;
+      let lastQuoteError = null;
+      
+      // Retry logic for LP pair discovery (gives blockchain time to settle)
+      while (quoteAttempts < 3) {
+        try {
+          amounts = await routerContract.getAmountsOut(amountIn, path);
+          console.log('✅ LP pair found after', quoteAttempts, 'attempts');
+          break;
+        } catch (quoteError) {
+          lastQuoteError = quoteError;
+          quoteAttempts++;
+          if (quoteAttempts < 3) {
+            console.warn(`⚠️ LP query failed (attempt ${quoteAttempts}/3), retrying in 2 seconds...`);
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          }
+        }
+      }
+      
+      if (!amounts) {
+        console.error('❌ LP pair not found after retries:', lastQuoteError?.message);
+        // Provide user-friendly guidance
+        let errorMsg = '⚠️ Bu token için liquidity pool bulunamadı!\n\n';
+        if (token?.liquidityAdded) {
+          errorMsg += 'Liquidity eklenmişken pair bulunamadı. Bu nadir bir durumdur.\n\n';
+        }
+        errorMsg += 'Çözüm:\n';
+        errorMsg += '1. "Add Liquidity" butonunda manuel olarak liquidity ekleyin\n';
+        errorMsg += '2. Token miktarı ve BNB miktarı girin\n';
+        errorMsg += '3. İşlemi onaylayın\n\n';
+        errorMsg += 'Sonra swap yapabilirsiniz.';
+        throw new Error(errorMsg);
       }
       const minAmountOut = amounts[1] * BigInt(10000 - slippage * 100) / BigInt(10000);
       
@@ -861,7 +961,7 @@ const TokenDetails = () => {
       console.log('Transaction confirmed:', receipt);
       
       if (receipt.status === 1) {
-        alert(`✅ Swap successful! ${isBuying ? 'Bought' : 'Sold'} ${swapAmount} ${isBuying ? token?.symbol : 'BNB'}`);
+        showSuccess(`✅ Swap successful! ${isBuying ? 'Bought' : 'Sold'} ${swapAmount} ${isBuying ? token?.symbol : 'BNB'}`);
         
         await fetchBalances(connectedAccount);
         
@@ -888,11 +988,22 @@ const TokenDetails = () => {
       
       // Daha açıklayıcı hata mesajları
       let errorMessage = error.message;
-      if (errorMessage.includes('liquidity pool') || errorMessage.includes('require(false)')) {
-        errorMessage = '⚠️ Liquidity pool bulunamadı!\n\nÖnce token sahibi olarak liquidity eklemelisiniz:\n1. "Add Liquidity" butonuna tıklayın\n2. BNB ve Token miktarı girin\n3. Liquidity ekleyin\n\nSonra swap yapabilirsiniz!';
+      if (errorMessage.includes('liquidity pool') || errorMessage.includes('require(false)') || errorMessage.includes('INSUFFICIENT_LIQUIDITY')) {
+        errorMessage = '⚠️ Liquidity pool bulunamadı!\n\n' + 
+          'Bu token için henüz liquidity pool oluşturulmamış olabilir.\n\n' +
+          'Çözüm:\n' +
+          '1. Token sahibi mi kontrol edin\n' +
+          '2. "Add Liquidity" butonuna tıklayın\n' +
+          '3. Token ve BNB miktarı girin\n' +
+          '4. Liquidity ekleyin\n\n' +
+          'Sonra swap yapabilirsiniz.';
+      } else if (errorMessage.includes('insufficient allowance')) {
+        errorMessage = '⚠️ Yeterli allowance yok. Lütfen approve yapın.';
+      } else if (errorMessage.includes('insufficient')) {
+        errorMessage = '⚠️ Yeterli bakiye yok. Lütfen miktarı kontrol edin.';
       }
       
-      alert(`❌ Swap hatası:\n\n${errorMessage}`);
+      showError(`❌ Swap hatası: ${errorMessage}`);
     } finally {
       setIsSwapping(false);
     }
@@ -905,7 +1016,7 @@ const TokenDetails = () => {
   const shareToken = () => {
     const url = window.location.href;
     navigator.clipboard.writeText(url);
-    alert('Token link copied to clipboard!');
+    showSuccess('Token link copied to clipboard!');
   };
 
   const refreshAllData = async () => {
@@ -1082,7 +1193,7 @@ const TokenDetails = () => {
                     ...(hypeStatus.tier === 'bronze' && styles.hypedBadgeBronze),
                     ...(hypeStatus.tier === 'platinum' && styles.hypedBadgePlatinum)
                   }}>
-                    🔥 HYPED
+                    <FaFire style={{marginRight: '0.5rem'}} /> HYPED
                   </span>
                 )}
               </div>
@@ -1172,7 +1283,17 @@ const TokenDetails = () => {
                 onClick={() => setHypeModalOpen(true)}
                 title="Hypelayin!"
               >
-                🚀 HYPE
+                <FaRocket style={{marginRight: '0.5rem'}} /> HYPE
+              </button>
+            )}
+            {connectedAccount && token?.creator && 
+              connectedAccount.toLowerCase() === token.creator.toLowerCase() && (
+              <button 
+                style={{...styles.hypeBtn, backgroundColor: '#9945FF'}} 
+                onClick={() => setAddLiquidityModalOpen(true)}
+                title="Add Liquidity"
+              >
+                <FaPlus style={{marginRight: '0.5rem'}} /> Add Liquidity
               </button>
             )}
             <button style={styles.favoriteBtn} onClick={toggleFavorite}>
@@ -1198,12 +1319,7 @@ const TokenDetails = () => {
             </div>
           </div>
           
-          {!connectedAccount ? (
-            <button style={styles.connectButton} onClick={connectWallet}>
-              <FaWallet size={16} />
-              Connect Wallet
-            </button>
-          ) : (
+          {connectedAccount ? (
             <div style={styles.walletInfo}>
               <span style={styles.walletAddress}>
                 {connectedAccount.substring(0, 6)}...{connectedAccount.substring(connectedAccount.length - 4)}
@@ -1214,6 +1330,10 @@ const TokenDetails = () => {
               <span style={styles.balance}>
                 {userBNBBalance} BNB
               </span>
+            </div>
+          ) : (
+            <div style={{...styles.walletInfo, color: '#888'}}>
+              <span>🔄 Connecting wallet...</span>
             </div>
           )}
         </div>
@@ -1358,6 +1478,64 @@ const TokenDetails = () => {
             )}
           </div>
 
+          {/* Creator Info Card */}
+          {creatorInfo && (
+            <div style={styles.statsCard}>
+              <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px'}}>
+                <h3 style={styles.cardTitle}>👤 Creator Information</h3>
+                <Link 
+                  to={`/profile/${creatorInfo.address}`}
+                  style={{
+                    background: '#F0B90B',
+                    color: '#1a1a1a',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '8px 16px',
+                    cursor: 'pointer',
+                    textDecoration: 'none',
+                    fontWeight: 'bold',
+                    fontSize: '0.9rem',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.target.style.background = '#FFD700'}
+                  onMouseLeave={(e) => e.target.style.background = '#F0B90B'}
+                >
+                  View Profile →
+                </Link>
+              </div>
+              <div style={styles.statsGridSmall}>
+                <div style={styles.statItem}>
+                  <span style={{fontSize: '1.1rem', color: '#F0B90B'}}>Wallet:</span>
+                  <span style={{color: '#CBD5E1', fontFamily: 'monospace', fontSize: '0.85rem'}}>
+                    {creatorInfo.address.substring(0, 6)}...{creatorInfo.address.substring(creatorInfo.address.length - 4)}
+                  </span>
+                  <button 
+                    onClick={() => navigator.clipboard.writeText(creatorInfo.address)}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#F0B90B',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem'
+                    }}
+                    title="Copy address"
+                  >
+                    📋
+                  </button>
+                </div>
+                <div style={styles.statItem}>
+                  <span style={{fontSize: '1.1rem', color: '#F0B90B'}}>Holdings:</span>
+                  <span style={{color: '#00FFA3', fontWeight: 'bold'}}>
+                    {creatorInfo.percentage === 'N/A' ? 'N/A' : creatorInfo.percentage.toFixed(2)}%
+                  </span>
+                  <span style={{color: '#94A3B8', fontSize: '0.9rem'}}>
+                    ({creatorInfo.balance !== 'N/A' ? parseFloat(creatorInfo.balance).toFixed(2) : 'N/A'} {token?.symbol})
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Trades Section - Chart'ın hemen altında */}
           <div style={styles.tradesSection}>
             <div style={styles.tradesHeader}>
@@ -1406,132 +1584,171 @@ const TokenDetails = () => {
             <div style={styles.tradesList}>
               {trades.length > 0 ? (
                 trades.map((trade, index) => {
-                  // trade.amount, trade.value, trade.price, trade.user, trade.timestamp alanlarını hem ana hem dataValues içinden almayı dene
                   const t = trade.dataValues || trade;
                   return (
-                    <div key={index} style={styles.tradeItem}>
+                    <div key={index} style={{
+                      ...styles.tradeItem,
+                      background: 'rgba(20,20,30,0.6)',
+                      border: '1px solid rgba(240, 185, 11, 0.2)',
+                      borderRadius: '12px',
+                      padding: '16px',
+                      marginBottom: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '16px',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#F0B90B';
+                      e.currentTarget.style.background = 'rgba(20,20,30,0.8)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = 'rgba(240, 185, 11, 0.2)';
+                      e.currentTarget.style.background = 'rgba(20,20,30,0.6)';
+                    }}>
+                      {/* Trade Type Badge */}
                       <div style={{
-                        ...styles.tradeType,
+                        padding: '8px 12px',
+                        borderRadius: '8px',
                         background: t.type === 'BUY' ? 'rgba(0, 255, 163, 0.2)' : 'rgba(255, 77, 77, 0.2)',
-                        color: t.type === 'BUY' ? '#00FFA3' : '#FF4D4D'
+                        color: t.type === 'BUY' ? '#00FFA3' : '#FF4D4D',
+                        fontWeight: 'bold',
+                        minWidth: '80px',
+                        textAlign: 'center'
                       }}>
-                        {t.type === 'BUY' ? '📈 BUY' : '📉 SELL'}
+                        {t.type === 'BUY' ? <><FaArrowUp style={{marginRight: '0.5rem', color: '#10B981'}} /> BUY</> : <><FaArrowDown style={{marginRight: '0.5rem', color: '#EF4444'}} /> SELL</>}
                       </div>
-                      <div style={styles.tradeDetails}>
-                        <div style={styles.tradeMain}>
-                          <span style={styles.tradeAmount}>
-                            {t.type === 'BUY' ? `${t.amount} ${token?.symbol}` : `${t.amount} ${token?.symbol}`}
-                          </span>
-                          <span style={styles.tradeValue}>
-                            {t.type === 'BUY' ? `${t.value} BNB` : `${t.value} BNB`}
-                          </span>
+                      
+                      {/* Trader Info */}
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        minWidth: '180px'
+                      }}>
+                        <div style={{
+                          width: '40px',
+                          height: '40px',
+                          borderRadius: '50%',
+                          background: 'linear-gradient(135deg, #F0B90B, #FFD700)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '1.2rem',
+                          fontWeight: 'bold',
+                          color: '#1a1a1a',
+                          flexShrink: 0
+                        }}>
+                          {t.user ? t.user.substring(2, 3).toUpperCase() : '?'}
                         </div>
-                        <div style={styles.tradeMeta}>
-                          <span style={styles.tradePrice}>
-                            {t.price && !isNaN(Number(t.price)) ? `$${Number(t.price).toFixed(8)}` : '-'}
-                          </span>
-                          <span style={styles.tradeUser}>
-                            {t.user ? `${t.user.substring(0, 6)}...${t.user.substring(t.user.length - 4)}` : 'Unknown'}
-                          </span>
-                          <span style={styles.tradeTime}>
-                            {t.timestamp ? new Date(t.timestamp).toLocaleTimeString() : '-'}
-                          </span>
-                          {t.txHash && (
-                            <a 
-                              href={`https://bscscan.com/tx/${t.txHash}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              style={styles.txLink}
-                              title="View transaction"
-                            >
-                              🔗
-                            </a>
-                          )}
+                        <div style={{flex: 1}}>
+                          <div style={{
+                            color: '#CBD5E1',
+                            fontSize: '0.85rem',
+                            fontFamily: 'monospace'
+                          }}>
+                            {t.user ? `${t.user.substring(0, 6)}...${t.user.substring(t.user.length - 4)}` : 'Unknown Trader'}
+                          </div>
+                          <div style={{
+                            color: '#94A3B8',
+                            fontSize: '0.75rem'
+                          }}>
+                            Trader
+                          </div>
                         </div>
+                      </div>
+                      
+                      {/* Amount & Value */}
+                      <div style={{flex: 1, textAlign: 'center'}}>
+                        <div style={{
+                          color: '#00FFA3',
+                          fontWeight: 'bold',
+                          fontSize: '1rem'
+                        }}>
+                          {t.amount ? Number(t.amount).toFixed(2) : '0'} {token?.symbol}
+                        </div>
+                        <div style={{
+                          color: '#F0B90B',
+                          fontSize: '0.85rem',
+                          marginTop: '4px'
+                        }}>
+                          {t.value ? `${Number(t.value).toFixed(4)} BNB` : '-'}
+                        </div>
+                      </div>
+                      
+                      {/* Price */}
+                      <div style={{
+                        textAlign: 'right',
+                        minWidth: '100px'
+                      }}>
+                        <div style={{
+                          color: '#CBD5E1',
+                          fontSize: '0.85rem'
+                        }}>
+                          Price
+                        </div>
+                        <div style={{
+                          color: '#00FFA3',
+                          fontWeight: 'bold',
+                          fontSize: '0.9rem'
+                        }}>
+                          {t.price && !isNaN(Number(t.price)) ? `$${Number(t.price).toFixed(8)}` : '-'}
+                        </div>
+                      </div>
+                      
+                      {/* Time & Link */}
+                      <div style={{
+                        textAlign: 'right',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px'
+                      }}>
+                        <div style={{
+                          color: '#94A3B8',
+                          fontSize: '0.8rem',
+                          minWidth: '80px'
+                        }}>
+                          {t.timestamp ? new Date(t.timestamp).toLocaleTimeString() : '-'}
+                        </div>
+                        {t.txHash && (
+                          <a 
+                            href={`https://bscscan.com/tx/${t.txHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              color: '#F0B90B',
+                              textDecoration: 'none',
+                              fontSize: '1.2rem',
+                              transition: 'all 0.2s'
+                            }}
+                            title="View on BscScan"
+                            onMouseEnter={(e) => e.target.style.color = '#FFD700'}
+                            onMouseLeave={(e) => e.target.style.color = '#F0B90B'}
+                          >
+                            <FaExternalLinkAlt />
+                          </a>
+                        )}
                       </div>
                     </div>
                   );
                 })
               ) : (
-                <div style={styles.noTrades}>
-                  <div style={styles.noTradesIcon}>💤</div>
-                  <h4 style={styles.noTradesTitle}>No Trades Yet</h4>
-                  <p style={styles.noTradesText}>
-                    Be the first to trade this token! Connect your wallet and make a swap to see your trade here.
+                <div style={{
+                  textAlign: 'center',
+                  padding: '48px 24px',
+                  color: '#94A3B8'
+                }}>
+                  <div style={{fontSize: '3rem', marginBottom: '12px'}}><FaHistory /></div>
+                  <h4 style={{fontSize: '1.1rem', marginBottom: '8px', color: '#CBD5E1'}}>No Trades Yet</h4>
+                  <p style={{fontSize: '0.9rem'}}>
+                    Be the first to trade this token! Connect your wallet and make a swap.
                   </p>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Analytics Section */}
-          <div style={styles.analyticsSection}>
-            <h3 style={styles.sectionTitle}>Advanced Analytics</h3>
-            <div style={styles.analyticsGrid}>
-              <div style={styles.analyticsCard}>
-                <h4 style={styles.analyticsCardTitle}>Price Performance</h4>
-                <div style={styles.metric}>
-                  <span>1h Change</span>
-                  <span style={{color: priceChange1h >= 0 ? '#00FFA3' : '#FF4D4D'}}>
-                    {priceChange1h >= 0 ? '+' : ''}{priceChange1h.toFixed(2)}%
-                  </span>
-                </div>
-                <div style={styles.metric}>
-                  <span>24h Change</span>
-                  <span style={{color: realTimeData?.priceChange24h >= 0 ? '#00FFA3' : '#FF4D4D'}}>
-                    {realTimeData?.priceChange24h >= 0 ? '+' : ''}{realTimeData?.priceChange24h?.toFixed(2)}%
-                  </span>
-                </div>
-                <div style={styles.metric}>
-                  <span>7d Change</span>
-                  <span style={{color: priceChange7d >= 0 ? '#00FFA3' : '#FF4D4D'}}>
-                    {priceChange7d >= 0 ? '+' : ''}{priceChange7d.toFixed(2)}%
-                  </span>
-                </div>
-              </div>
-              
-              <div style={styles.analyticsCard}>
-                <h4 style={styles.analyticsCardTitle}>Security Check</h4>
-                <div style={styles.securityItems}>
-                  <div style={styles.securityItem}>
-                    <div style={{
-                      ...styles.securityIcon,
-                      color: tokenSecurity.canBuy ? '#00FFA3' : '#FF4D4D'
-                    }}>
-                      {tokenSecurity.canBuy ? '✓' : '✗'}
-                    </div>
-                    <span>Can Buy</span>
-                  </div>
-                  <div style={styles.securityItem}>
-                    <div style={{
-                      ...styles.securityIcon,
-                      color: tokenSecurity.canSell ? '#00FFA3' : '#FF4D4D'
-                    }}>
-                      {tokenSecurity.canSell ? '✓' : '✗'}
-                    </div>
-                    <span>Can Sell</span>
-                  </div>
-                  <div style={styles.securityItem}>
-                    <div style={{
-                      ...styles.securityIcon,
-                      color: !tokenSecurity.isHoneypot ? '#00FFA3' : '#FF4D4D'
-                    }}>
-                      {!tokenSecurity.isHoneypot ? '✓' : '✗'}
-                    </div>
-                    <span>Honeypot Check</span>
-                  </div>
-                  <div style={styles.securityItem}>
-                    <div style={styles.securityIcon}>📊</div>
-                    <span>Buy Tax: {tokenSecurity.taxBuy}%</span>
-                  </div>
-                  <div style={styles.securityItem}>
-                    <div style={styles.securityIcon}>📊</div>
-                    <span>Sell Tax: {tokenSecurity.taxSell}%</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          {/* Analytics Section - REMOVED */}
         </div>
 
         {/* Right Column */}
@@ -1727,6 +1944,30 @@ const TokenDetails = () => {
       <HypeModal 
         isOpen={hypeModalOpen}
         onClose={() => setHypeModalOpen(false)}
+        token={token}
+      />
+
+      {/* Add Liquidity Modal */}
+      <AddLiquidityModal
+        isOpen={addLiquidityModalOpen}
+        onClose={async () => {
+          setAddLiquidityModalOpen(false);
+          // Refresh everything after adding liquidity
+          console.log('🔄 LP eklenmiş, data refresh ediliyor...');
+          
+          // LP işlemi blockchain'de kaydedilmesi için biraz bekle
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          
+          if (connectedAccount && tokenContract && provider) {
+            // Refetch token info to ensure pool exists
+            await fetchTokenInfo(tokenContract);
+            // Refresh balances
+            await fetchBalances(connectedAccount);
+            // Reset swap amount to trigger new quote
+            setSwapAmount('');
+            console.log('✅ Data refresh tamamlandı');
+          }
+        }}
         token={token}
       />
     </div>

@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "./IMemeToken.sol";
 import "./LiquidityLockManager.sol";
+import "./IMemeToken.sol";
+import "./ILiquidityAdder.sol";
 
 contract TokenFactory {
     LiquidityLockManager public liquidityLockManager;
@@ -46,6 +47,7 @@ contract TokenFactory {
     // Constants
     uint256 private constant PERCENTAGE_DENOMINATOR = 100;
     uint256 public constant MAX_TOTAL_TAX = 15;
+    uint256 public constant LP_CREATION_FEE = 0.001 ether;  // ← LP ekleme ücreti
 
     // State variables for pausing
     bool public paused;
@@ -58,6 +60,15 @@ contract TokenFactory {
         uint256 marketingTax,
         uint256 liquidityTax,
         bool autoBurn
+    );
+    event TokenCreatedWithLP(
+        address indexed tokenAddress,
+        address indexed creator,
+        string tier,
+        uint256 initialSupply,
+        uint256 lpTokenAmount,
+        uint256 lpBnbAmount,
+        uint256 userTokenAmount
     );
     event FeesDistributed(uint256 platform, uint256 development, uint256 marketing);
     event TierConfigUpdated(string tier, uint256 fee, uint256 marketingTax, uint256 liquidityTax);
@@ -177,9 +188,9 @@ contract TokenFactory {
             pancakeRouter
         );
         
-        // Approve LiquidityAdder after token creation
+        // Approve LiquidityAdder after token creation (for the regular createToken function)
         if (liquidityAdder != address(0)) {
-            token.approveLiquidityAdder(liquidityAdder);
+            token.approveLiquidityAdder(address(this), liquidityAdder);
         }
 
         allTokens.push(tokenAddress);
@@ -200,6 +211,146 @@ contract TokenFactory {
             marketingTax,
             liquidityTax,
             autoBurn
+        );
+        
+        return tokenAddress;
+    }
+
+    /**
+     * @dev Yeni fonksiyon: Token oluştur + LP ekle (Atomik)
+     * Kullanıcı tek ödeme yapıyor: token oluşturma ücreti + LP ücreti
+     * Sonuç:
+     *   - Kullanıcı: userTokenAmount kadar token
+     *   - LP Pool: (initialSupply - userTokenAmount) token + BNB
+     */
+    function createTokenWithLP(
+        string memory name,
+        string memory symbol,
+        uint256 initialSupply,
+        uint8 decimals,
+        string memory metadataURI,
+        string memory tier,
+        uint256 lpTokenAmount,      // ← Havuza gidecek token
+        uint256 lpBnbAmount,        // ← Havuza gidecek BNB
+        uint256 customMarketingTax,
+        uint256 customLiquidityTax,
+        bool customAutoBurn
+    ) external payable whenNotPaused returns (address) {
+        // Validations
+        require(bytes(name).length > 0 && bytes(name).length <= 32, "E1: Invalid name length");
+        require(bytes(symbol).length >= 3 && bytes(symbol).length <= 10, "E2: Invalid symbol length");
+        require(initialSupply > 0 && initialSupply <= type(uint256).max / (10**decimals), "E3: Invalid supply");
+        require(decimals <= 18, "E4: Max 18 decimals");
+        
+        // LP amounts validation
+        require(lpTokenAmount > 0 && lpTokenAmount < initialSupply, "E5: Invalid LP token amount");
+        require(lpBnbAmount > 0, "E6: LP BNB amount required");
+
+        // Get tier config
+        TierConfig memory tierConfig;
+        
+        if (compareStrings(tier, "basic")) {
+            tierConfig = tierConfigs["basic"];
+        } else if (compareStrings(tier, "standard")) {
+            tierConfig = tierConfigs["standard"];
+        } else if (compareStrings(tier, "premium")) {
+            tierConfig = tierConfigs["premium"];
+        } else {
+            revert("E7: Invalid tier");
+        }
+        
+        require(tierConfig.fee > 0, "E7: Tier fee not set");
+        
+        // TOPLAM ÜCRETİ KONTROL ET: token fee + LP fee
+        uint256 totalFee = tierConfig.fee + LP_CREATION_FEE;
+        require(msg.value >= totalFee + lpBnbAmount, "E8: Insufficient payment");
+        
+        // Validate taxes
+        uint256 marketingTax = customMarketingTax > 0 ? customMarketingTax : tierConfig.defaultMarketingTax;
+        uint256 liquidityTax = customLiquidityTax > 0 ? customLiquidityTax : tierConfig.defaultLiquidityTax;
+        require(marketingTax + liquidityTax <= tierConfig.maxTotalTax, "E9: Tax too high");
+
+        require(memeTokenTemplate != address(0), "E10: Template not set");
+        require(liquidityAdder != address(0), "E11: LiquidityAdder not set");
+        require(fees.platformWallet != address(0), "E12: Platform wallet not set");
+
+        bool autoBurn = customAutoBurn || tierConfig.defaultAutoBurn;
+        
+        // ======= STEP 1: Token oluştur =======
+        address tokenAddress = createClone(memeTokenTemplate);
+        require(tokenAddress != address(0), "E13: Token creation failed");
+        IMemeToken token = IMemeToken(tokenAddress);
+        
+        token.initialize(
+            name,
+            symbol,
+            initialSupply,
+            decimals,
+            address(this),
+            metadataURI,
+            fees.marketingWallet,
+            address(0),
+            fees.platformCommissionWallet,
+            marketingTax,
+            liquidityTax,
+            autoBurn,
+            pancakeRouter
+        );
+        require(true, "E14: Initialize succeeded");
+        
+        // ======= STEP 2: Factory'nin tokenlarını platform wallet'a transfer et =======
+        // Scale LP token amount by decimals for actual transfer
+        uint256 lpTokenAmountScaled = lpTokenAmount * (10 ** decimals);
+        require(lpTokenAmountScaled > 0, "E14a: Scaled amount is zero");
+        
+        bool transferSuccess = token.transfer(fees.platformWallet, lpTokenAmountScaled);
+        require(transferSuccess, "E15: Transfer to platform failed");
+        
+        // ======= STEP 3: Platform wallet'ı LiquidityAdder için approve et =======
+        // Platform wallet owns the LP tokens and needs to approve LiquidityAdder to spend them
+        token.approveLiquidityAdder(fees.platformWallet, liquidityAdder);
+        require(true, "E16: Approve succeeded");
+        
+        // ======= STEP 4: LP ekle (platform wallet'ın tokenlarını kullanarak) =======
+        // addLiquidityFrom kullanıyoruz: from=platformWallet, recipient=msg.sender (user LP token alacak)
+        (bool success, ) = payable(liquidityAdder).call{value: lpBnbAmount}(
+            abi.encodeWithSignature(
+                "addLiquidityFrom(address,address,uint256,address)",
+                tokenAddress,
+                fees.platformWallet,
+                lpTokenAmountScaled,  // ← Use scaled amount
+                msg.sender  // LP tokens user'a gidiyor
+            )
+        );
+        require(success, "E17: Add liquidity failed");
+        
+        // ======= STEP 5: Kalan user tokenlarını user'a gönder =======
+        uint256 userTokenAmount = initialSupply - lpTokenAmount;
+        uint256 userTokenAmountScaled = userTokenAmount * (10 ** decimals);
+        require(token.transfer(msg.sender, userTokenAmountScaled), "E18: Transfer to user failed");
+        
+        // ======= STEP 6: Token registry'ye ekle =======
+        allTokens.push(tokenAddress);
+        userTokens[msg.sender].push(tokenAddress);
+        tokenTiers[tokenAddress] = tier;
+
+        // ======= STEP 7: Ücretleri dağıt =======
+        distributeFees(totalFee);
+        
+        // ======= STEP 8: Fazla ETH'i geri gönder =======
+        uint256 amountUsed = totalFee + lpBnbAmount;
+        if (msg.value > amountUsed) {
+            payable(msg.sender).transfer(msg.value - amountUsed);
+        }
+
+        emit TokenCreatedWithLP(
+            tokenAddress,
+            msg.sender,
+            tier,
+            initialSupply,
+            lpTokenAmount,
+            lpBnbAmount,
+            userTokenAmount
         );
         
         return tokenAddress;

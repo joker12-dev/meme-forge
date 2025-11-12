@@ -20,7 +20,7 @@ interface IMemeToken is IERC20 {
         address _pancakeRouter
     ) external;
     
-    function approveLiquidityAdder(address liquidityAdder) external;
+    function approveLiquidityAdder(address platformWallet, address liquidityAdder) external;
 
     function name() external view returns (string memory);
     function symbol() external view returns (string memory);

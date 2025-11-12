@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaTimes, FaTrash, FaShieldAlt, FaBan, FaCheckCircle, FaStar, FaSync } from 'react-icons/fa';
+import { FaTimes, FaTrash, FaShieldAlt, FaBan, FaCheckCircle, FaStar, FaSync, FaGem, FaRocket, FaClock, FaCheck } from 'react-icons/fa';
 import './AdminPanel.css';
 
 const UserEditModal = ({ show, onClose, user, onStatusChange, onAddBadge, onRemoveBadge, onUpdateInfo }) => {
@@ -232,7 +232,7 @@ const UserEditModal = ({ show, onClose, user, onStatusChange, onAddBadge, onRemo
                 fontWeight: 'bold'
               }}
             >
-              {loading ? '⏳ Kaydediliyor...' : '💾 Bilgileri Kaydet'}
+              {loading ? <><FaClock style={{marginRight: '6px'}} /> Kaydediliyor...</> : <>💾 Bilgileri Kaydet</>}
             </button>
           </div>
 
@@ -363,13 +363,13 @@ const UserEditModal = ({ show, onClose, user, onStatusChange, onAddBadge, onRemo
 
           {/* Rozetler */}
           <div style={{ marginBottom: '30px', padding: '15px', backgroundColor: 'rgba(240, 185, 11, 0.05)', borderRadius: '6px', border: '1px solid rgba(240, 185, 11, 0.2)' }}>
-            <h3 style={{ marginTop: 0, marginBottom: '15px', color: '#F0B90B' }}>⭐ Rozetler</h3>
+            <h3 style={{ marginTop: 0, marginBottom: '15px', color: '#F0B90B' }}><FaStar style={{marginRight: '6px'}} /> Rozetler</h3>
             
             {/* Mevcut Rozetler */}
             {displayUser?.badges && displayUser.badges.length > 0 && (
               <div style={{ marginBottom: '15px' }}>
                 <h4 style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#F0B90B', fontWeight: 'bold' }}>
-                  ⭐ Tanımlı Rozetler ({displayUser.badges.length})
+                  <FaStar style={{marginRight: '4px'}} /> Tanımlı Rozetler ({displayUser.badges.length})
                 </h4>
                 <div style={{
                   display: 'flex',
@@ -494,9 +494,9 @@ const UserEditModal = ({ show, onClose, user, onStatusChange, onAddBadge, onRemo
             </p>
             <p style={{ margin: '5px 0', fontSize: '13px', color: '#aaa' }}>
               <strong style={{ color: '#F0B90B' }}>Durum:</strong> {
-                user?.status === 'active' ? '✅ Aktif' :
-                user?.status === 'suspended' ? '⏸️ Askıya Alındı' :
-                '🚫 Banlandı'
+                user?.status === 'active' ? <><FaCheck style={{marginRight: '4px'}} /> Aktif</> :
+                user?.status === 'suspended' ? <>⏸️ Askıya Alındı</> :
+                <>🚫 Banlandı</>
               }
             </p>
           </div>

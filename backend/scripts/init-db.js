@@ -25,47 +25,47 @@ async function initDatabase() {
   const { Post, Comment, PostLike, CommentLike } = require('../models/Post');
 
   // Sync all models
-  await User.sync({ alter: true });
+  await User.sync({ alter: false, force: false });
   console.log('✅ User model synced');
 
-  await Token.sync({ alter: true });
+  await Token.sync({ alter: false, force: false });
   console.log('✅ Token model synced');
 
-  await Trade.sync({ alter: true });
+  await Trade.sync({ alter: false, force: false });
   console.log('✅ Trade model synced');
 
-  await PriceHistory.sync({ alter: true });
+  await PriceHistory.sync({ alter: false, force: false });
   console.log('✅ PriceHistory model synced');
 
-  await TokenHype.sync({ alter: true });
+  await TokenHype.sync({ alter: false, force: false });
   console.log('✅ TokenHype model synced');
 
-  await Campaign.sync({ alter: true });
+  await Campaign.sync({ alter: false, force: false });
   console.log('✅ Campaign model synced');
 
-  await Admin.sync({ alter: true });
+  await Admin.sync({ alter: false, force: false });
   console.log('✅ Admin model synced');
 
-  await SiteSettings.sync({ alter: true });
+  await SiteSettings.sync({ alter: false, force: false });
   console.log('✅ SiteSettings model synced');
 
-  await ActivityLog.sync({ alter: true });
+  await ActivityLog.sync({ alter: false, force: false });
   console.log('✅ ActivityLog model synced');
 
-  await Vote.sync({ alter: true });
+  await Vote.sync({ alter: false, force: false });
   console.log('✅ Vote model synced');
 
   // New social models
-  await Post.sync({ alter: true });
+  await Post.sync({ alter: false, force: false });
   console.log('✅ Post model synced');
 
-  await Comment.sync({ alter: true });
+  await Comment.sync({ alter: false, force: false });
   console.log('✅ Comment model synced');
 
-  await PostLike.sync({ alter: true });
+  await PostLike.sync({ alter: false, force: false });
   console.log('✅ PostLike model synced');
 
-  await CommentLike.sync({ alter: true });
+  await CommentLike.sync({ alter: false, force: false });
   console.log('✅ CommentLike model synced');
 
   console.log('✅ All models synced');

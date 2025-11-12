@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { getBackendURL } from '../utils/api';
 import './MyTokens.css';
 // EditTokenMeta component (move above main component)
 const EditTokenMeta = React.memo(function EditTokenMeta({ token, userAddress, onClose, onUpdated }) {
@@ -16,7 +17,7 @@ const EditTokenMeta = React.memo(function EditTokenMeta({ token, userAddress, on
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const backendURL = '${getBackendURL()}';
+  const backendURL = 'getBackendURL()';
 
   const handleLogoFileChange = async e => {
     const file = e.target.files[0];
@@ -32,7 +33,7 @@ const EditTokenMeta = React.memo(function EditTokenMeta({ token, userAddress, on
     try {
       const formData = new FormData();
       formData.append('logo', file);
-      const backendURL = process.env.REACT_APP_BACKEND_URL || '${getBackendURL()}';
+      const backendURL = process.env.REACT_APP_BACKEND_URL || 'getBackendURL()';
       const uploadURL = `${backendURL}/api/upload/logo`;
       const response = await fetch(uploadURL, {
         method: 'POST',
@@ -165,7 +166,7 @@ const MyTokens = () => {
       try {
         const address = await getCurrentAccount();
         setUserAddress(address);
-        const backendURL = '${getBackendURL()}';
+        const backendURL = 'getBackendURL()';
         console.log('MyTokens: wallet address:', address);
         console.log('MyTokens: backendURL:', backendURL);
         const res = await axios.get(`${backendURL}/api/my-tokens`, {

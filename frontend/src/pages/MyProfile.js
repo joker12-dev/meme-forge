@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { getBackendURL } from '../utils/api';
 import {
   FaEdit,
   FaCheck,
@@ -97,7 +98,7 @@ const MyProfile = () => {
         setWalletConnected(true);
         setWalletAddress(address);
 
-        const backendURL = process.env.REACT_APP_BACKEND_URL || '${getBackendURL()}';
+        const backendURL = process.env.REACT_APP_BACKEND_URL || 'getBackendURL()';
         const response = await fetch(`${backendURL}/api/users/${address}`, {
           headers: { 'wallet-address': address }
         });
@@ -123,7 +124,7 @@ const MyProfile = () => {
 
     const fetchTokens = async () => {
       try {
-        const backendURL = process.env.REACT_APP_BACKEND_URL || '${getBackendURL()}';
+        const backendURL = process.env.REACT_APP_BACKEND_URL || 'getBackendURL()';
         const offset = (tokenPage - 1) * tokenLimit;
 
         const params = new URLSearchParams({
@@ -158,7 +159,7 @@ const MyProfile = () => {
 
     setSaveLoading(true);
     try {
-      const backendURL = process.env.REACT_APP_BACKEND_URL || '${getBackendURL()}';
+      const backendURL = process.env.REACT_APP_BACKEND_URL || 'getBackendURL()';
 
       console.log('💾 [PROFILE SAVE] Starting save...', { 
         walletAddress,

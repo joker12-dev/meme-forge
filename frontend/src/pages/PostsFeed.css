@@ -14,6 +14,63 @@
   border-bottom: 2px solid #333;
 }
 
+.feed-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.feed-title h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 32px;
+  font-weight: 700;
+  color: #ffd700;
+  margin: 0;
+}
+
+.feed-title .btn-back {
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px solid #ffd700;
+  color: #ffd700;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s ease;
+}
+
+.feed-title .btn-back:hover {
+  background: #ffd700;
+  color: #000;
+}
+
+.feed-title .post-count {
+  color: #999;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #999;
+}
+
+.empty-state svg {
+  color: #ffd700;
+  margin-bottom: 20px;
+  opacity: 0.5;
+}
+
+.empty-state h3 {
+  color: #ccc;
+  margin-bottom: 20px;
+}
+
 .feed-header h1 {
   font-size: 36px;
   font-weight: 800;
@@ -161,10 +218,19 @@
   animation: fadeIn 0.5s ease;
 }
 
+.post-item.pinned {
+  border: 2px solid #ffd700;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+}
+
 .post-item:hover {
   border-color: #ffd700;
   box-shadow: 0 10px 30px rgba(255, 215, 0, 0.1);
   transform: translateY(-5px);
+}
+
+.post-item.pinned:hover {
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.5), 0 10px 30px rgba(255, 215, 0, 0.15);
 }
 
 /* Post item header */
@@ -174,6 +240,12 @@
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid #333;
+}
+
+.post-badges {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 .creator-info {
@@ -218,11 +290,24 @@
   font-weight: 700;
   text-transform: uppercase;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .badge-type.launch {
   background: linear-gradient(135deg, #ff6b6b, #ff8a7b);
   color: white;
+}
+
+.badge-type.pinned {
+  background: linear-gradient(135deg, #ffd700, #ffed4e);
+  color: #333;
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4);
+}
+
+.badge-type.pinned:hover {
+  box-shadow: 0 3px 12px rgba(255, 215, 0, 0.6);
 }
 
 /* Post image */
@@ -300,6 +385,79 @@
   border-radius: 12px;
   font-size: 11px;
   font-weight: 600;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.tag:hover {
+  background: rgba(255, 215, 0, 0.25);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.2);
+}
+
+.tag.active {
+  background: #ffd700;
+  color: #000;
+}
+
+/* Post Links */
+.post-item-links {
+  display: flex;
+  gap: 10px;
+  padding: 12px 16px;
+  justify-content: flex-start;
+  border-top: 1px solid #333;
+}
+
+.post-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 215, 0, 0.1);
+  color: #ffd700;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  font-size: 16px;
+}
+
+.post-link:hover {
+  background: #ffd700;
+  color: #000;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 215, 0, 0.3);
+}
+
+.post-link[title="Twitter"] {
+  color: #1da1f2;
+}
+
+.post-link[title="Twitter"]:hover {
+  background: #1da1f2;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(29, 161, 242, 0.3);
+}
+
+.post-link[title="Telegram"] {
+  color: #0088cc;
+}
+
+.post-link[title="Telegram"]:hover {
+  background: #0088cc;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(0, 136, 204, 0.3);
+}
+
+.post-link[title="Discord"] {
+  color: #5865f2;
+}
+
+.post-link[title="Discord"]:hover {
+  background: #5865f2;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(88, 101, 242, 0.3);
 }
 
 /* Post engagement */

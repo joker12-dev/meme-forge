@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { getBackendURL } from '../utils/api';
 import './CampaignDetail.css';
 
 const CampaignDetail = () => {

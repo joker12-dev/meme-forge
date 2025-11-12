@@ -11,6 +11,10 @@ const liquidityRoutes = require('./routes/liquidity');
 const usersRoutes = require('./routes/users');
 const postsRoutes = require('./routes/posts');
 const followRoutes = require('./routes/followRoutes');
+const contactRoutes = require('./routes/contact');
+const configRoutes = require('./routes/config');
+const adminRoutes = require('./routes/admin');
+const campaignsRoutes = require('./routes/campaigns');
 
 const app = express();
 
@@ -36,6 +40,10 @@ app.use('/api/liquidity', liquidityRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/posts', postsRoutes);
 app.use('/api/follow', followRoutes);
+app.use('/api/contact', contactRoutes);
+app.use('/api/config', configRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/campaigns', campaignsRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

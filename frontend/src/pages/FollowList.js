@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { getBackendURL } from '../utils/api';
 import {
   FaUserPlus, FaUserCheck, FaArrowLeft, FaArrowRight,
   FaCheckCircle, FaTrophy, FaFire, FaCrown, FaTimes
@@ -84,7 +85,7 @@ const FollowList = ({ type = 'followers' }) => {
   const loadList = async () => {
     try {
       setLoading(true);
-      const backendURL = process.env.REACT_APP_BACKEND_URL || '${getBackendURL()}';
+      const backendURL = process.env.REACT_APP_BACKEND_URL || 'getBackendURL()';
 
       const endpoint = type === 'followers' ? 'followers' : 'following';
       const response = await fetch(
@@ -128,7 +129,7 @@ const FollowList = ({ type = 'followers' }) => {
     }
 
     try {
-      const backendURL = process.env.REACT_APP_BACKEND_URL || '${getBackendURL()}';
+      const backendURL = process.env.REACT_APP_BACKEND_URL || 'getBackendURL()';
       const isFollowing = followingState[userAddress];
       const endpoint = isFollowing ? 'unfollow' : 'follow';
 

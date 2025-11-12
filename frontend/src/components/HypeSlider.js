@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getBackendURL } from '../utils/api';
 import useAutoRefresh from '../hooks/useAutoRefresh';
 import useVisibilityChange from '../hooks/useVisibilityChange';
 import './HypeSlider.css';

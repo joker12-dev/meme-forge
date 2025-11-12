@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useWallet } from '../contexts/WalletContext';
+import { getBackendURL } from '../utils/api';
 import VerifiedUsername from '../components/VerifiedUsername';
 import {
   FaArrowLeft, FaHeart, FaRegHeart, FaComment, FaShare,
@@ -31,7 +32,7 @@ const PostDetail = () => {
   const loadPost = async () => {
     try {
       setLoading(true);
-      const backendURL = process.env.REACT_APP_BACKEND_URL || '${getBackendURL()}';
+      const backendURL = process.env.REACT_APP_BACKEND_URL || 'getBackendURL()';
       const response = await fetch(`${backendURL}/api/posts/${postId}`);
       const data = await response.json();
 
@@ -54,7 +55,7 @@ const PostDetail = () => {
   const loadComments = async () => {
     try {
       setCommentsLoading(true);
-      const backendURL = process.env.REACT_APP_BACKEND_URL || '${getBackendURL()}';
+      const backendURL = process.env.REACT_APP_BACKEND_URL || 'getBackendURL()';
       const response = await fetch(`${backendURL}/api/posts/${postId}/comments?page=1&limit=50`);
       const data = await response.json();
 
@@ -78,7 +79,7 @@ const PostDetail = () => {
     }
 
     try {
-      const backendURL = process.env.REACT_APP_BACKEND_URL || '${getBackendURL()}';
+      const backendURL = process.env.REACT_APP_BACKEND_URL || 'getBackendURL()';
       const response = await fetch(`${backendURL}/api/posts/${postId}/like`, {
         method: 'POST',
         headers: {
@@ -113,7 +114,7 @@ const PostDetail = () => {
 
     try {
       setCommentLoading(true);
-      const backendURL = process.env.REACT_APP_BACKEND_URL || '${getBackendURL()}';
+      const backendURL = process.env.REACT_APP_BACKEND_URL || 'getBackendURL()';
       const response = await fetch(`${backendURL}/api/posts/${postId}/comments`, {
         method: 'POST',
         headers: {
@@ -147,7 +148,7 @@ const PostDetail = () => {
     }
 
     try {
-      const backendURL = process.env.REACT_APP_BACKEND_URL || '${getBackendURL()}';
+      const backendURL = process.env.REACT_APP_BACKEND_URL || 'getBackendURL()';
       const response = await fetch(`${backendURL}/api/posts/comment/${commentId}/like`, {
         method: 'POST',
         headers: {
@@ -180,7 +181,7 @@ const PostDetail = () => {
     if (!window.confirm('Postu silmek istediğinize emin misiniz?')) return;
 
     try {
-      const backendURL = process.env.REACT_APP_BACKEND_URL || '${getBackendURL()}';
+      const backendURL = process.env.REACT_APP_BACKEND_URL || 'getBackendURL()';
       const response = await fetch(`${backendURL}/api/posts/${postId}`, {
         method: 'DELETE',
         headers: {
@@ -353,9 +354,14 @@ const PostDetail = () => {
               </div>
 
               {/* Title & Content */}
-              <h1 style={{ fontSize: 32, fontWeight: 700, marginBottom: 16, marginTop: 0 }}>
-                {post.title}
-              </h1>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                {post.isPinned && (
+                  <span style={{ fontSize: 24, title: 'Sabitlenmiş Post' }}>📌</span>
+                )}
+                <h1 style={{ fontSize: 32, fontWeight: 700, margin: 0 }}>
+                  {post.title}
+                </h1>
+              </div>
 
               <div style={{
                 fontSize: 12,

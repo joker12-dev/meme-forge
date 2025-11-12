@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { FaCrown, FaChartBar } from 'react-icons/fa';
+import { getBackendURL } from '../utils/api';
 import { fetchMultipleTokensData, mergeDexDataWithToken } from '../utils/dexscreener';
 import './Ranked.css';
 
@@ -13,7 +14,7 @@ const Ranked = () => {
       setLoading(true);
       try {
         // Backend'den tokenları çek
-        const backendURL = process.env.REACT_APP_BACKEND_URL || '${getBackendURL()}';
+        const backendURL = process.env.REACT_APP_BACKEND_URL || getBackendURL();
         const response = await fetch(`${backendURL}/api/tokens`);
         const dbTokens = await response.json();
         if (!Array.isArray(dbTokens) || dbTokens.length === 0) {

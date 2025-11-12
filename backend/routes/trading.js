@@ -119,11 +119,15 @@ router.get('/price-history/:tokenAddress', async (req, res) => {
     const { hours = 24 } = req.query;
     
     const since = new Date(Date.now() - hours * 60 * 60 * 1000);
+    const { Op } = require('sequelize');
     
-    const history = await PriceHistory.find({
-      tokenAddress,
-      timestamp: { $gte: since }
-    }).sort({ timestamp: 1 });
+    const history = await PriceHistory.findAll({
+      where: {
+        tokenAddress,
+        timestamp: { [Op.gte]: since }
+      },
+      order: [['timestamp', 'ASC']]
+    });
     
     res.json(history);
   } catch (error) {
@@ -215,17 +219,16 @@ router.post('/save-trade', async (req, res) => {
   try {
     const { tokenAddress, userAddress, amount, type, txHash, price } = req.body;
     
-    const trade = new Trade({
+    const trade = await Trade.create({
       tokenAddress,
-      userAddress,
+      buyerAddress: type === 'BUY' ? userAddress : null,
+      sellerAddress: type === 'SELL' ? userAddress : null,
       amount,
       type, // 'BUY' or 'SELL'
       txHash,
       price,
       timestamp: new Date()
     });
-    
-    await trade.save();
     
     // Broadcast new trade
     broadcast({
@@ -234,12 +237,16 @@ router.post('/save-trade', async (req, res) => {
     });
     
     // Update token volume
-    await Token.updateOne(
-      { address: tokenAddress },
+    await Token.update(
       { 
-        $inc: { totalVolume: parseFloat(amount) },
-        $set: { lastTrade: new Date() }
-      }
+        totalVolume: require('sequelize').sequelize.where(
+          require('sequelize').sequelize.col('totalVolume'), 
+          '+', 
+          parseFloat(amount)
+        ),
+        lastTrade: new Date()
+      },
+      { where: { address: tokenAddress } }
     );
     
     res.json({ success: true, trade });
@@ -248,15 +255,71 @@ router.post('/save-trade', async (req, res) => {
   }
 });
 
-// Get recent trades
+// Get user trades by wallet address
+router.get('/user/:address', async (req, res) => {
+  try {
+    const { address } = req.params;
+    const { page = 1, limit = 20 } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    
+    // Find trades by user address with Token association
+    const { count, rows: trades } = await Trade.findAndCountAll({
+      where: {
+        user: address.toLowerCase()
+      },
+      include: [
+        {
+          model: require('../models/Token'),
+          as: 'token',
+          attributes: ['logoURL']
+        }
+      ],
+      order: [['timestamp', 'DESC']],
+      offset: skip,
+      limit: parseInt(limit)
+    });
+
+    // Enrich trades with logoURL from Token
+    const enrichedTrades = trades.map(trade => {
+      const tradeData = trade.toJSON ? trade.toJSON() : trade;
+      if (trade.token) {
+        tradeData.logoURL = trade.token.logoURL;
+      }
+      return tradeData;
+    });
+
+    res.json({
+      success: true,
+      trades: enrichedTrades,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: count,
+        pages: Math.ceil(count / parseInt(limit))
+      }
+    });
+  } catch (error) {
+    console.error('Get user trades error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message,
+      trades: [],
+      pagination: { page: 1, limit: 20, total: 0, pages: 0 }
+    });
+  }
+});
+
+// Get recent trades by token
 router.get('/trades/:tokenAddress', async (req, res) => {
   try {
     const { tokenAddress } = req.params;
     const { limit = 50 } = req.query;
     
-    const trades = await Trade.find({ tokenAddress })
-      .sort({ timestamp: -1 })
-      .limit(parseInt(limit));
+    const trades = await Trade.findAll({
+      where: { tokenAddress },
+      order: [['timestamp', 'DESC']],
+      limit: parseInt(limit)
+    });
     
     res.json(trades);
   } catch (error) {
@@ -267,23 +330,69 @@ router.get('/trades/:tokenAddress', async (req, res) => {
 // 24h volume
 const get24hVolume = async (tokenAddress) => {
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const { sequelize } = require('sequelize');
   
-  const volumeData = await Trade.aggregate([
-    {
-      $match: {
-        tokenAddress,
-        timestamp: { $gte: since }
-      }
+  const volumeData = await Trade.findAll({
+    where: {
+      tokenAddress,
+      timestamp: { [require('sequelize').Op.gte]: since }
     },
-    {
-      $group: {
-        _id: null,
-        totalVolume: { $sum: '$amount' }
-      }
-    }
-  ]);
+    attributes: [
+      [sequelize.fn('SUM', sequelize.col('amount')), 'totalVolume']
+    ],
+    raw: true
+  });
   
-  return volumeData.length > 0 ? volumeData[0].totalVolume : 0;
+  return volumeData.length > 0 && volumeData[0].totalVolume ? volumeData[0].totalVolume : 0;
 };
+
+// Get recent trades for ticker
+router.get('/recent/:chain', async (req, res) => {
+  try {
+    const { chain } = req.params;
+    const limit = req.query.limit ? parseInt(req.query.limit) : 30;
+
+    // Get recent trades from database
+    const trades = await Trade.findAll({
+      order: [['timestamp', 'DESC']],
+      limit
+    });
+
+    if (!trades || trades.length === 0) {
+      return res.json({
+        success: true,
+        trades: [],
+        message: 'No trades found'
+      });
+    }
+
+    // Format response
+    const formattedTrades = trades.map(trade => ({
+      id: trade.id || Math.random().toString(36),
+      type: trade.type || 'BUY',
+      token: trade.tokenAddress || '0x...',
+      tokenSymbol: trade.tokenSymbol || 'TOKEN',
+      amount: trade.amount || 0,
+      value: trade.value || 0,
+      price: trade.price || 0,
+      buyer: trade.buyerAddress || '0x...',
+      timestamp: trade.timestamp || new Date(),
+      txHash: trade.txHash || null
+    }));
+
+    res.json({
+      success: true,
+      trades: formattedTrades,
+      count: formattedTrades.length
+    });
+  } catch (error) {
+    console.error('Get recent trades error:', error);
+    res.json({
+      success: true,
+      trades: [],
+      error: error.message
+    });
+  }
+});
 
 module.exports = router;

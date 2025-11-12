@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { WalletProvider } from './contexts/WalletContext';
+import { NotificationProvider } from './components/NotificationContainer';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import Home from './components/Home';
@@ -20,6 +21,8 @@ import PageTransition from './components/PageTransition';
 import Maintenance from './components/Maintenance';
 import MyTokens from './pages/MyTokens';
 import MyProfile from './pages/MyProfile';
+import MyTrades from './pages/MyTrades';
+import MyWallet from './pages/MyWallet';
 import ProfilePage from './pages/ProfilePage';
 import MyPosts from './pages/MyPosts';
 import PostsFeed from './pages/PostsFeed';
@@ -94,6 +97,8 @@ function AppLayout() {
           <Route path="/admin" element={<AdminPanel />} />
           <Route path="/my-tokens" element={<MyTokens />} />
           <Route path="/my-profile" element={<MyProfile />} />
+          <Route path="/my-trades" element={<MyTrades />} />
+          <Route path="/my-wallet" element={<MyWallet />} />
           <Route path="/my-posts" element={<MyPosts />} />
           <Route path="/profile/:address" element={<ProfilePage />} />
           <Route path="/profile/:address/followers" element={<FollowList type="followers" />} />
@@ -109,11 +114,13 @@ function AppLayout() {
 
 function App() {
   return (
-    <WalletProvider>
-      <Router>
-        <AppLayout />
-      </Router>
-    </WalletProvider>
+    <NotificationProvider>
+      <WalletProvider>
+        <Router>
+          <AppLayout />
+        </Router>
+      </WalletProvider>
+    </NotificationProvider>
   );
 }
 

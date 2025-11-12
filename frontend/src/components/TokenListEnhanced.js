@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { getBackendURL } from '../utils/api';
 import {  FaArrowLeft, FaArrowRight, FaSort } from 'react-icons/fa';
 import { FiSearch } from 'react-icons/fi';
 import HypeSlider from './HypeSlider';
@@ -31,7 +32,7 @@ const TokenListEnhanced = () => {
   useEffect(() => {
     const fetchLiveTransactions = async () => {
       try {
-        const backendURL = process.env.REACT_APP_BACKEND_URL || '${getBackendURL()}';
+        const backendURL = process.env.REACT_APP_BACKEND_URL || 'getBackendURL()';
         const response = await fetch(`${backendURL}/api/trades/recent/BSC?limit=30`);
         const data = await response.json();
         
@@ -66,7 +67,7 @@ const TokenListEnhanced = () => {
       try {
         setLoading(true);
         setError('');
-        const backendURL = process.env.REACT_APP_BACKEND_URL || '${getBackendURL()}';
+        const backendURL = process.env.REACT_APP_BACKEND_URL || 'getBackendURL()';
         
         const params = new URLSearchParams({
           page: currentPage,

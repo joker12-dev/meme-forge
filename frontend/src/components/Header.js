@@ -810,6 +810,12 @@ const Header = () => {
                       <Link to="/my-posts" style={{ color: '#CBD5E1', textDecoration: 'none', fontWeight: 400, width: '100%', display: 'block', textAlign: 'left', padding: '0.5rem 0', fontSize: '0.8rem' }} onClick={() => setIsWalletDropdownOpen(false)}>
                          My Posts
                       </Link>
+                      <Link to="/my-trades" style={{ color: '#CBD5E1', textDecoration: 'none', fontWeight: 400, width: '100%', display: 'block', textAlign: 'left', padding: '0.5rem 0', fontSize: '0.8rem' }} onClick={() => setIsWalletDropdownOpen(false)}>
+                         My Trades
+                      </Link>
+                      <Link to="/my-wallet" style={{ color: '#CBD5E1', textDecoration: 'none', fontWeight: 400, width: '100%', display: 'block', textAlign: 'left', padding: '0.5rem 0', fontSize: '0.8rem' }} onClick={() => setIsWalletDropdownOpen(false)}>
+                         My Wallet
+                      </Link>
                       <button 
                         onClick={handleDisconnect}
                         className="disconnect-button"
@@ -934,6 +940,24 @@ const Header = () => {
               <FaPenFancy className="nav-icon" />
               My Posts
             </Link>
+            {account && (
+              <>
+                <Link 
+                  to="/my-trades" 
+                  className={`mobile-nav-link ${isActive('/my-trades') ? 'mobile-nav-link-active' : ''}`}
+                >
+                  <FaChartBar className="nav-icon" />
+                  My Trades
+                </Link>
+                <Link 
+                  to="/my-wallet" 
+                  className={`mobile-nav-link ${isActive('/my-wallet') ? 'mobile-nav-link-active' : ''}`}
+                >
+                  <FaLink className="nav-icon" />
+                  My Wallet
+                </Link>
+              </>
+            )}
           </nav>
 
           <div className="mobile-wallet-section">

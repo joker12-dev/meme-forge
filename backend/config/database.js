@@ -5,10 +5,7 @@ require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 const sequelize = new Sequelize(process.env.DATABASE_URL, {
   dialect: 'postgres',
   dialectOptions: {
-    ssl: {
-      require: true,
-      rejectUnauthorized: false
-    }
+    ssl: false
   },
   logging: false,
   pool: {
@@ -24,8 +21,9 @@ const connectDB = async () => {
     await sequelize.authenticate();
     console.log('✅ PostgreSQL Connected');
     console.log(`📊 Database: ${sequelize.config.database}`);
-
-    // Don't auto-sync here, let init-db or server handle it
+    
+    // Tables should already be created by init-db.js
+    // Don't sync here to avoid schema conflicts
     
   } catch (error) {
     console.error('❌ Database connection failed:', error.message);
